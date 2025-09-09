@@ -1,0 +1,84 @@
+{
+  "dashboard": {
+    "goodMorning": "Good Morning",
+    "goodAfternoon": "Good Afternoon", 
+    "goodEvening": "Good Evening",
+    "farmer": "Farmer",
+    "loading": "Loading GramSetu...",
+    "searchPlaceholder": "Search here... Ask AI assistant",
+    "quickActions": "Quick Actions",
+    "mainModules": "Farm Management",
+    "recentActivities": "Recent Updates",
+    "viewAll": "View all",
+    "todayWeather": "Today's Weather",
+    "goodDayFarming": "Good day for farming",
+    "humidity": "Humidity"
+  },
+  "profile": {
+    "menu": "Profile Menu",
+    "changeLanguage": "Change Language", 
+    "logout": "Logout",
+    "logoutConfirmation": "Are you sure you want to logout?",
+    "logoutError": "Failed to logout. Please try again.",
+    "languageChangeError": "Failed to change language. Please try again."
+  },
+  "modules": {
+    "marketplace": "Marketplace",
+    "marketplaceSubtitle": "Check prices & sell produce",
+    "weather": "Weather & Climate",
+    "weatherSubtitle": "Forecasts & farming tips",
+    "aiAssistant": "AI Assistant", 
+    "aiAssistantSubtitle": "Get instant farming advice",
+    "schemes": "Govt. Schemes",
+    "schemesSubtitle": "Apply for subsidies & loans",
+    "labor": "Labor Management",
+    "laborSubtitle": "Manage workers & payments"
+  },
+  "quickActions": {
+    "todayWeather": "Today's Weather",
+    "marketPrices": "Market Prices",
+    "quickQuery": "Quick Query", 
+    "alerts": "Alerts"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "ok": "OK",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "retry": "Retry",
+    "close": "Close"
+  },
+  "onboarding": {
+    "welcome": "Welcome to GramSetu",
+    "chooseLanguage": "Choose Your Language",
+    "languageInstruction": "भाषा चुनें / Choose Language",
+    "selectLanguageToContinue": "Select your preferred language to continue",
+    "getStarted": "Get Started",
+    "next": "Next",
+    "skip": "Skip",
+    "finish": "Finish",
+    "tapToContinue": "Tap or swipe left to continue",
+    "swipeToExplore": "Swipe to explore features"
+  },
+  "weather": {
+    "temperature": "Temperature",
+    "humidity": "Humidity", 
+    "windSpeed": "Wind Speed",
+    "rainfall": "Rainfall",
+    "forecast": "Forecast",
+    "advisory": "Advisory"
+  },
+  "marketplace": {
+    "prices": "Prices",
+    "trending": "Trending",
+    "myListings": "My Listings",
+    "sellProduce": "Sell Produce",
+    "buyRequests": "Buy Requests",
+    "todayPrices": "Today's Market Prices"
+  }
+}

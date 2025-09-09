@@ -1,0 +1,79 @@
+{
+  "dashboard": {
+    "goodMorning": "સુપ્રભાત",
+    "goodAfternoon": "નમસ્તે", 
+    "goodEvening": "શુભ સાંજ",
+    "farmer": "ખેડૂત",
+    "loading": "ગ્રામસેતુ લોડ થઈ રહ્યું છે...",
+    "searchPlaceholder": "અહીં શોધો... AI સહાયકને પૂછો",
+    "quickActions": "ઝડપી ક્રિયાઓ",
+    "mainModules": "ખેત વ્યવસ્થાપન",
+    "recentActivities": "તાજેતરના અપડેટ્સ",
+    "viewAll": "બધું જુઓ",
+    "todayWeather": "આજનું હવામાન",
+    "goodDayFarming": "ખેતી માટે સારો દિવસ",
+    "humidity": "ભેજ"
+  },
+  "profile": {
+    "menu": "પ્રોફાઇલ મેનૂ",
+    "changeLanguage": "ભાષા બદલો", 
+    "logout": "લૉગઆઉટ",
+    "logoutConfirmation": "શું તમે ખરેખર લૉગઆઉટ કરવા માંગો છો?",
+    "logoutError": "લૉગઆઉટ નિષ્ફળ. કૃપા કરીને ફરી પ્રયાસ કરો.",
+    "languageChangeError": "ભાષા બદલવામાં નિષ્ફળ. કૃપા કરીને ફરી પ્રયાસ કરો."
+  },
+  "modules": {
+    "marketplace": "બજાર",
+    "marketplaceSubtitle": "કિંમતો તપાસો અને ઉત્પાદન વેચો",
+    "weather": "હવામાન અને આબોહવા",
+    "weatherSubtitle": "આગાહી અને ખેતી સલાહ",
+    "aiAssistant": "AI સહાયક", 
+    "aiAssistantSubtitle": "તુરંત ખેતી સલાહ મેળવો",
+    "schemes": "સરકારી યોજનાઓ",
+    "schemesSubtitle": "સબસિડી અને લોન માટે અરજી કરો",
+    "labor": "મજૂર વ્યવસ્થાપન",
+    "laborSubtitle": "કામદારો અને ચુકવણી વ્યવસ્થિત કરો"
+  },
+  "quickActions": {
+    "todayWeather": "આજનું હવામાન",
+    "marketPrices": "બજાર ભાવ",
+    "quickQuery": "ઝડપી પૂછપરછ", 
+    "alerts": "અલર્ટ"
+  },
+  "common": {
+    "loading": "લોડ થઈ રહ્યું છે...",
+    "error": "ભૂલ",
+    "success": "સફળતા",
+    "cancel": "રદ કરો",
+    "ok": "ઠીક છે",
+    "save": "સેવ કરો",
+    "delete": "કાઢી નાખો",
+    "edit": "સંપાદિત કરો",
+    "add": "ઉમેરો",
+    "retry": "ફરી પ્રયાસ કરો",
+    "close": "બંધ કરો"
+  },
+  "onboarding": {
+    "welcome": "ગ્રામસેતુમાં તમારું સ્વાગત છે",
+    "chooseLanguage": "તમારી ભાષા પસંદ કરો",
+    "getStarted": "શરૂ કરો",
+    "next": "આગળ",
+    "skip": "છોડો",
+    "finish": "સમાપ્ત"
+  },
+  "weather": {
+    "temperature": "તાપમાન",
+    "humidity": "ભેજ", 
+    "windSpeed": "પવનની ગતિ",
+    "rainfall": "વરસાદ",
+    "forecast": "આગાહી",
+    "advisory": "સલાહ"
+  },
+  "marketplace": {
+    "prices": "કિંમતો",
+    "trending": "ટ્રેન્ડિંગ",
+    "myListings": "મારી યાદીઓ",
+    "sellProduce": "ઉત્પાદન વેચો",
+    "buyRequests": "ખરીદીની વિનંતીઓ"
+  }
+}

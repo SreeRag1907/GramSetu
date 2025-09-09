@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
+import { useI18n } from '../i18n/useI18n';
 import {
   WeatherData,
   ForecastDay,
@@ -26,6 +27,7 @@ import {
 
 
 const ClimateAnalysis = () => {
+  const { t } = useI18n();
   const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null);
   const [forecast, setForecast] = useState<ForecastDay[]>([]);
   const [advisories, setAdvisories] = useState<Advisory[]>([]);
@@ -221,7 +223,7 @@ const ClimateAnalysis = () => {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButton}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Climate Analysis</Text>
+        <Text style={styles.headerTitle}>{t('modules.weather')}</Text>
         <View style={styles.placeholder} />
       </View>
 

@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useI18n } from '../../i18n/useI18n';
 import { languages } from '../../data/onboarding-data';
 
 const LanguageSelection = () => {
+  const { t, changeLanguage } = useI18n();
   const [selectedLanguage, setSelectedLanguage] = useState('');
 
   useEffect(() => {
@@ -24,13 +26,14 @@ const LanguageSelection = () => {
 
   const handleLanguageSelect = async (languageCode: string) => {
     try {
+      await changeLanguage(languageCode);
       await AsyncStorage.setItem('selectedLanguage', languageCode);
       setSelectedLanguage(languageCode);
       
       // Navigate to registration
       router.push('/onboarding/registration');
     } catch (error) {
-      Alert.alert('Error', 'Failed to save language preference');
+      Alert.alert(t('common.error'), t('errors.generic'));
     }
   };
 
@@ -43,8 +46,8 @@ const LanguageSelection = () => {
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.title}>Choose Your Language</Text>
-        <Text style={styles.subtitle}>भाषा चुनें / Choose Language</Text>
+        <Text style={styles.title}>{t('onboarding.chooseLanguage')}</Text>
+        <Text style={styles.subtitle}>{t('onboarding.languageInstruction')}</Text>
 
         <View style={styles.languageGrid}>
           {languages.map((language) => (
@@ -66,7 +69,7 @@ const LanguageSelection = () => {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          Select your preferred language to continue
+          {t('onboarding.selectLanguageToContinue')}
         </Text>
       </View>
     </View>

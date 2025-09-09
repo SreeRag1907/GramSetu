@@ -1,0 +1,79 @@
+{
+  "dashboard": {
+    "goodMorning": "सकाळची नमस्कार",
+    "goodAfternoon": "दुपारची नमस्कार", 
+    "goodEvening": "संध्याकाळची नमस्कार",
+    "farmer": "शेतकरी",
+    "loading": "ग्रामसेतु लोड होत आहे...",
+    "searchPlaceholder": "येथे शोधा... AI सहाय्यकाला विचारा",
+    "quickActions": "जलद कृती",
+    "mainModules": "शेत व्यवस्थापन",
+    "recentActivities": "अलीकडील अपडेट्स",
+    "viewAll": "सर्व पहा",
+    "todayWeather": "आजचे हवामान",
+    "goodDayFarming": "शेतीसाठी चांगला दिवस",
+    "humidity": "आर्द्रता"
+  },
+  "profile": {
+    "menu": "प्रोफाइल मेनू",
+    "changeLanguage": "भाषा बदला", 
+    "logout": "लॉगआउट",
+    "logoutConfirmation": "तुम्ही खरोखर लॉगआउट करू इच्छिता?",
+    "logoutError": "लॉगआउट अयशस्वी। कृपया पुन्हा प्रयत्न करा।",
+    "languageChangeError": "भाषा बदलण्यात अयशस्वी। कृपया पुन्हा प्रयत्न करा।"
+  },
+  "modules": {
+    "marketplace": "बाजारपेठ",
+    "marketplaceSubtitle": "किंमती तपासा आणि उत्पादन विका",
+    "weather": "हवामान आणि जलवायु",
+    "weatherSubtitle": "अंदाज आणि शेती सल्ले",
+    "aiAssistant": "AI सहाय्यक", 
+    "aiAssistantSubtitle": "तत्काळ शेती सल्ला घ्या",
+    "schemes": "सरकारी योजना",
+    "schemesSubtitle": "अनुदान आणि कर्जासाठी अर्ज करा",
+    "labor": "कामगार व्यवस्थापन",
+    "laborSubtitle": "कामगार आणि पेमेंट व्यवस्थापित करा"
+  },
+  "quickActions": {
+    "todayWeather": "आजचे हवामान",
+    "marketPrices": "बाजार भाव",
+    "quickQuery": "जलद चौकशी", 
+    "alerts": "अलर्ट"
+  },
+  "common": {
+    "loading": "लोड होत आहे...",
+    "error": "त्रुटी",
+    "success": "यश",
+    "cancel": "रद्द करा",
+    "ok": "ठीक आहे",
+    "save": "जतन करा",
+    "delete": "हटवा",
+    "edit": "संपादित करा",
+    "add": "जोडा",
+    "retry": "पुन्हा प्रयत्न करा",
+    "close": "बंद करा"
+  },
+  "onboarding": {
+    "welcome": "ग्रामसेतुमध्ये आपले स्वागत आहे",
+    "chooseLanguage": "तुमची भाषा निवडा",
+    "getStarted": "सुरुवात करा",
+    "next": "पुढे",
+    "skip": "वगळा",
+    "finish": "समाप्त"
+  },
+  "weather": {
+    "temperature": "तापमान",
+    "humidity": "आर्द्रता", 
+    "windSpeed": "वाऱ्याचा वेग",
+    "rainfall": "पाऊस",
+    "forecast": "अंदाज",
+    "advisory": "सल्ला"
+  },
+  "marketplace": {
+    "prices": "किंमती",
+    "trending": "ट्रेंडिंग",
+    "myListings": "माझ्या याद्या",
+    "sellProduce": "उत्पादन विका",
+    "buyRequests": "खरेदी विनंत्या"
+  }
+}

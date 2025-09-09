@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useI18n } from '../i18n/useI18n';
 import {
   ProduceListing,
   MarketPrice,
@@ -24,6 +25,7 @@ import {
 } from '../data/marketplace-data';
 
 const Marketplace = () => {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<'sell' | 'prices' | 'listings'>('sell');
   const [showListingModal, setShowListingModal] = useState(false);
   const [listings, setListings] = useState<ProduceListing[]>([]);
@@ -139,7 +141,7 @@ const Marketplace = () => {
 
   const renderPricesTab = () => (
     <View style={styles.tabContent}>
-      <Text style={styles.sectionTitle}>Today's Market Prices</Text>
+      <Text style={styles.sectionTitle}>{t('marketplace.todayPrices')}</Text>
       {marketPrices.map((price, index) => (
         <View key={index} style={styles.priceCard}>
           <View style={styles.priceHeader}>
@@ -194,7 +196,7 @@ const Marketplace = () => {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButton}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Marketplace</Text>
+        <Text style={styles.headerTitle}>{t('modules.marketplace')}</Text>
         <View style={styles.placeholder} />
       </View>
 

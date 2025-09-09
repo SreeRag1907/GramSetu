@@ -10,11 +10,13 @@ import {
   PanResponder
 } from 'react-native';
 import { router } from 'expo-router';
+import { useI18n } from '../i18n/useI18n';
 import { onboardingData, OnboardingItem } from '../data/onboarding-data';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 const GetStartedScreen = () => {
+  const { t } = useI18n();
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -102,7 +104,7 @@ const GetStartedScreen = () => {
     <View style={styles.container} {...panResponder.panHandlers}>
       {/* Skip button */}
       <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-        <Text style={styles.skipText}>Skip</Text>
+        <Text style={styles.skipText}>{t('onboarding.skip')}</Text>
       </TouchableOpacity>
 
       <ScrollView
@@ -139,7 +141,7 @@ const GetStartedScreen = () => {
           onPress={currentIndex === onboardingData.length - 1 ? handleGetStarted : () => goToSlide(currentIndex + 1)}
         >
           <Text style={styles.getStartedText}>
-            {currentIndex === onboardingData.length - 1 ? 'Get Started' : 'Next'}
+            {currentIndex === onboardingData.length - 1 ? t('onboarding.getStarted') : t('onboarding.next')}
           </Text>
           <Text style={styles.arrowIcon}>→</Text>
         </TouchableOpacity>
@@ -147,8 +149,8 @@ const GetStartedScreen = () => {
         {/* Swipe indicator */}
         <Text style={styles.swipeText}>
           {currentIndex === onboardingData.length - 1 
-            ? 'Tap or swipe left to continue' 
-            : 'Swipe to explore features'
+            ? t('onboarding.tapToContinue') 
+            : t('onboarding.swipeToExplore')
           }
         </Text>
       </View>

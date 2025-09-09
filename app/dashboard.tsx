@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, ActivityIndicator, Modal, Alert } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useI18n } from '../i18n/useI18n';
 import {
   dashboardModules,
   quickActions,
@@ -11,12 +12,63 @@ import {
   formatDate,
   WeatherData,
 } from '../data/dashboard-data';
+import { languages } from '../data/onboarding-data';
 
 const Dashboard = () => {
+  const { t, currentLanguage, changeLanguage } = useI18n();
+  
+  // Get translated modules
+  const getTranslatedModules = () => {
+    return dashboardModules.map(module => ({
+      ...module,
+      title: getModuleTitle(module.id),
+      subtitle: getModuleSubtitle(module.id)
+    }));
+  };
+
+  const getModuleTitle = (moduleId: string) => {
+    switch (moduleId) {
+      case 'marketplace': return t('modules.marketplace');
+      case 'climate': return t('modules.weather');
+      case 'chatbot': return t('modules.aiAssistant');
+      case 'schemes': return t('modules.schemes');
+      case 'labor': return t('modules.labor');
+      default: return moduleId;
+    }
+  };
+
+  const getModuleSubtitle = (moduleId: string) => {
+    switch (moduleId) {
+      case 'marketplace': return t('modules.marketplaceSubtitle');
+      case 'climate': return t('modules.weatherSubtitle');
+      case 'chatbot': return t('modules.aiAssistantSubtitle');
+      case 'schemes': return t('modules.schemesSubtitle');
+      case 'labor': return t('modules.laborSubtitle');
+      default: return '';
+    }
+  };
+
+  const getTranslatedQuickActions = () => {
+    return quickActions.map(action => ({
+      ...action,
+      title: getQuickActionTitle(action.id)
+    }));
+  };
+
+  const getQuickActionTitle = (actionId: string) => {
+    switch (actionId) {
+      case 'weather': return t('quickActions.todayWeather');
+      case 'market': return t('quickActions.marketPrices');
+      case 'query': return t('quickActions.quickQuery');
+      case 'alerts': return t('quickActions.alerts');
+      default: return actionId;
+    }
+  };
   const [userName, setUserName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [weatherData, setWeatherData] = useState<WeatherData>(defaultWeatherData);
 
   useEffect(() => {
@@ -67,15 +119,15 @@ const Dashboard = () => {
 
   const handleLogout = async () => {
     Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
+      t('profile.logout'),
+      t('profile.logoutConfirmation'),
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel'
         },
         {
-          text: 'Logout',
+          text: t('profile.logout'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -83,7 +135,7 @@ const Dashboard = () => {
               setShowProfileMenu(false);
               router.replace('/get-started' as any);
             } catch (error) {
-              Alert.alert('Error', 'Failed to logout. Please try again.');
+              Alert.alert(t('common.error'), t('profile.logoutError'));
             }
           }
         }
@@ -91,9 +143,14 @@ const Dashboard = () => {
     );
   };
 
-  const handleChangeLanguage = () => {
-    setShowProfileMenu(false);
-    router.push('/onboarding/language');
+  const handleLanguageSelect = async (languageCode: string) => {
+    try {
+      await changeLanguage(languageCode);
+      setShowLanguageDropdown(false);
+      setShowProfileMenu(false);
+    } catch (error) {
+      Alert.alert(t('common.error'), t('profile.languageChangeError'));
+    }
   };
 
 
@@ -102,7 +159,7 @@ const Dashboard = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#4CAF50" />
-        <Text style={styles.loadingText}>Loading GramSetu...</Text>
+        <Text style={styles.loadingText}>{t('dashboard.loading')}</Text>
       </View>
     );
   }
@@ -114,8 +171,8 @@ const Dashboard = () => {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={styles.greeting}>Hello, {getGreeting(currentTime)}</Text>
-            <Text style={styles.userName}>{userName || 'Farmer'}</Text>
+            <Text style={styles.greeting}>{getGreeting(currentTime)}</Text>
+            <Text style={styles.userName}>{userName || t('dashboard.farmer')}</Text>
             <Text style={styles.date}>{formatDate(currentTime)}</Text>
           </View>
           <TouchableOpacity 
@@ -129,7 +186,7 @@ const Dashboard = () => {
         {/* Search Bar */}
         <TouchableOpacity style={styles.searchBar} onPress={() => router.push('/chatbot')}>
           <Text style={styles.searchIcon}>🔍</Text>
-          <Text style={styles.searchText}>Search here... Ask AI assistant</Text>
+          <Text style={styles.searchText}>{t('dashboard.searchPlaceholder')}</Text>
           <Text style={styles.micIcon}>🎤</Text>
         </TouchableOpacity>
       </View>
@@ -155,9 +212,9 @@ const Dashboard = () => {
 
       {/* Quick Actions */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <Text style={styles.sectionTitle}>{t('dashboard.quickActions')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickActionsContainer}>
-          {quickActions.map((action) => (
+          {getTranslatedQuickActions().map((action) => (
             <TouchableOpacity
               key={action.id}
               style={styles.quickActionCard}
@@ -172,9 +229,9 @@ const Dashboard = () => {
 
       {/* Main Modules */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Farm Management</Text>
+        <Text style={styles.sectionTitle}>{t('dashboard.mainModules')}</Text>
         <View style={styles.modulesGrid}>
-          {dashboardModules.map((module, index) => (
+          {getTranslatedModules().map((module, index) => (
             <TouchableOpacity
               key={module.id}
               style={[
@@ -202,9 +259,9 @@ const Dashboard = () => {
       {/* Recent Activities */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent Updates</Text>
+          <Text style={styles.sectionTitle}>{t('dashboard.recentActivities')}</Text>
           <TouchableOpacity>
-            <Text style={styles.viewAllText}>View all</Text>
+            <Text style={styles.viewAllText}>{t.viewAll}</Text>
           </TouchableOpacity>
         </View>
         {recentActivities.map((activity) => (
@@ -233,32 +290,65 @@ const Dashboard = () => {
         visible={showProfileMenu}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setShowProfileMenu(false)}
+        onRequestClose={() => {
+          setShowProfileMenu(false);
+          setShowLanguageDropdown(false);
+        }}
       >
         <TouchableOpacity 
           style={styles.modalOverlay}
           activeOpacity={1}
-          onPress={() => setShowProfileMenu(false)}
+          onPress={() => {
+            setShowProfileMenu(false);
+            setShowLanguageDropdown(false);
+          }}
         >
           <View style={styles.profileMenu}>
             <View style={styles.profileMenuHeader}>
-              <Text style={styles.profileMenuTitle}>Profile Menu</Text>
+              <Text style={styles.profileMenuTitle}>{t('profile.menu')}</Text>
             </View>
             
             <TouchableOpacity 
               style={styles.profileMenuItem}
-              onPress={handleChangeLanguage}
+              onPress={() => setShowLanguageDropdown(!showLanguageDropdown)}
             >
               <Text style={styles.profileMenuIcon}>🌐</Text>
-              <Text style={styles.profileMenuText}>Change Language</Text>
+              <Text style={styles.profileMenuText}>{t('profile.changeLanguage')}</Text>
+              <Text style={styles.dropdownIcon}>{showLanguageDropdown ? '▲' : '▼'}</Text>
             </TouchableOpacity>
+            
+            {/* Language Dropdown */}
+            {showLanguageDropdown && (
+              <View style={styles.languageDropdown}>
+                {languages.map((language) => (
+                  <TouchableOpacity
+                    key={language.code}
+                    style={[
+                      styles.languageOption,
+                      currentLanguage === language.code && styles.selectedLanguage
+                    ]}
+                    onPress={() => handleLanguageSelect(language.code)}
+                  >
+                    <Text style={[
+                      styles.languageOptionText,
+                      currentLanguage === language.code && styles.selectedLanguageText
+                    ]}>
+                      {language.native}
+                    </Text>
+                    {currentLanguage === language.code && (
+                      <Text style={styles.checkIcon}>✓</Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
             
             <TouchableOpacity 
               style={[styles.profileMenuItem, styles.logoutMenuItem]}
               onPress={handleLogout}
             >
               <Text style={styles.profileMenuIcon}>🚪</Text>
-              <Text style={[styles.profileMenuText, styles.logoutText]}>Logout</Text>
+              <Text style={[styles.profileMenuText, styles.logoutText]}>{t('profile.logout')}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -546,15 +636,15 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end',
-    paddingTop: 100,
-    paddingRight: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
   },
   profileMenu: {
     backgroundColor: 'white',
     borderRadius: 15,
-    minWidth: 200,
+    width: '100%',
+    maxWidth: 320,
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -598,6 +688,51 @@ const styles = StyleSheet.create({
   logoutText: {
     color: '#FF4444',
     fontWeight: '600',
+  },
+  dropdownIcon: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 'auto',
+  },
+  languageDropdown: {
+    backgroundColor: '#F8F9FA',
+    marginHorizontal: 15,
+    marginBottom: 10,
+    borderRadius: 10,
+    paddingVertical: 10,
+  },
+  currentLanguageText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4CAF50',
+    textAlign: 'center',
+    marginBottom: 10,
+    paddingHorizontal: 15,
+  },
+  languageOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    marginHorizontal: 5,
+  },
+  selectedLanguage: {
+    backgroundColor: '#E8F5E8',
+  },
+  languageOptionText: {
+    fontSize: 15,
+    color: '#333',
+    flex: 1,
+  },
+  selectedLanguageText: {
+    color: '#4CAF50',
+    fontWeight: '600',
+  },
+  checkIcon: {
+    fontSize: 16,
+    color: '#4CAF50',
+    fontWeight: 'bold',
   },
 });
 

@@ -1,0 +1,79 @@
+{
+  "dashboard": {
+    "goodMorning": "সুপ্রভাত",
+    "goodAfternoon": "নমস্কার", 
+    "goodEvening": "শুভ সন্ধ্যা",
+    "farmer": "কৃষক",
+    "loading": "গ্রামসেতু লোড হচ্ছে...",
+    "searchPlaceholder": "এখানে খুঁজুন... AI সহায়ককে জিজ্ঞাসা করুন",
+    "quickActions": "দ্রুত কাজ",
+    "mainModules": "খামার ব্যবস্থাপনা",
+    "recentActivities": "সাম্প্রতিক আপডেট",
+    "viewAll": "সব দেখুন",
+    "todayWeather": "আজকের আবহাওয়া",
+    "goodDayFarming": "চাষের জন্য ভালো দিন",
+    "humidity": "আর্দ্রতা"
+  },
+  "profile": {
+    "menu": "প্রোফাইল মেনু",
+    "changeLanguage": "ভাষা পরিবর্তন করুন", 
+    "logout": "লগআউট",
+    "logoutConfirmation": "আপনি কি সত্যিই লগআউট করতে চান?",
+    "logoutError": "লগআউট ব্যর্থ হয়েছে। আবার চেষ্টা করুন।",
+    "languageChangeError": "ভাষা পরিবর্তন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।"
+  },
+  "modules": {
+    "marketplace": "বাজার",
+    "marketplaceSubtitle": "দাম চেক করুন এবং উৎপাদন বিক্রি করুন",
+    "weather": "আবহাওয়া এবং জলবায়ু",
+    "weatherSubtitle": "পূর্বাভাস এবং চাষের পরামর্শ",
+    "aiAssistant": "AI সহায়ক", 
+    "aiAssistantSubtitle": "তাৎক্ষণিক চাষের পরামর্শ নিন",
+    "schemes": "সরকারি প্রকল্প",
+    "schemesSubtitle": "ভর্তুকি এবং ঋণের জন্য আবেদন করুন",
+    "labor": "শ্রমিক ব্যবস্থাপনা",
+    "laborSubtitle": "কর্মী এবং পেমেন্ট পরিচালনা করুন"
+  },
+  "quickActions": {
+    "todayWeather": "আজকের আবহাওয়া",
+    "marketPrices": "বাজার দর",
+    "quickQuery": "দ্রুত জিজ্ঞাসা", 
+    "alerts": "সতর্কতা"
+  },
+  "common": {
+    "loading": "লোড হচ্ছে...",
+    "error": "ত্রুটি",
+    "success": "সফলতা",
+    "cancel": "বাতিল",
+    "ok": "ঠিক আছে",
+    "save": "সেভ করুন",
+    "delete": "মুছে দিন",
+    "edit": "সম্পাদনা",
+    "add": "যোগ করুন",
+    "retry": "আবার চেষ্টা করুন",
+    "close": "বন্ধ করুন"
+  },
+  "onboarding": {
+    "welcome": "গ্রামসেতুতে আপনাকে স্বাগতম",
+    "chooseLanguage": "আপনার ভাষা বেছে নিন",
+    "getStarted": "শুরু করুন",
+    "next": "পরবর্তী",
+    "skip": "এড়িয়ে যান",
+    "finish": "সমাপ্ত"
+  },
+  "weather": {
+    "temperature": "তাপমাত্রা",
+    "humidity": "আর্দ্রতা", 
+    "windSpeed": "বাতাসের গতি",
+    "rainfall": "বৃষ্টিপাত",
+    "forecast": "পূর্বাভাস",
+    "advisory": "পরামর্শ"
+  },
+  "marketplace": {
+    "prices": "দাম",
+    "trending": "ট্রেন্ডিং",
+    "myListings": "আমার তালিকা",
+    "sellProduce": "উৎপাদন বিক্রি করুন",
+    "buyRequests": "কেনার অনুরোধ"
+  }
+}

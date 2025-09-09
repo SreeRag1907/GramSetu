@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useI18n } from '../i18n/useI18n';
 import {
   ChatMessage,
   QuickQuery,
@@ -22,6 +23,7 @@ import {
 } from '../data/chatbot-data';
 
 const Chatbot = () => {
+  const { t } = useI18n();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -101,7 +103,7 @@ const Chatbot = () => {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButton}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>AI Assistant</Text>
+        <Text style={styles.headerTitle}>{t('modules.aiAssistant')}</Text>
         <TouchableOpacity onPress={() => Alert.alert('Help', 'Ask me anything about farming, weather, market prices, or government schemes. I\'m here to help!')}>
           <Text style={styles.helpButton}>?</Text>
         </TouchableOpacity>
