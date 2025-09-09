@@ -2,18 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, ActivityIndicator, Modal, Alert } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  dashboardModules,
+  quickActions,
+  recentActivities,
+  defaultWeatherData,
+  getGreeting,
+  formatDate,
+  WeatherData,
+} from '../data/dashboard-data';
 
 const Dashboard = () => {
   const [userName, setUserName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [weatherData, setWeatherData] = useState({
-    temperature: 28,
-    humidity: 65,
-    condition: 'Partly Cloudy',
-    location: 'Your Location'
-  });
+  const [weatherData, setWeatherData] = useState<WeatherData>(defaultWeatherData);
 
   useEffect(() => {
     loadUserData();
@@ -59,21 +63,7 @@ const Dashboard = () => {
     }
   };
 
-  const getGreeting = () => {
-    const hour = currentTime.getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
-  };
 
-  const formatDate = () => {
-    return currentTime.toLocaleDateString('en-IN', {
-      weekday: 'long',
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
 
   const handleLogout = async () => {
     Alert.alert(
@@ -106,66 +96,7 @@ const Dashboard = () => {
     router.push('/onboarding/language');
   };
 
-  const modules = [
-    {
-      id: 'marketplace',
-      title: 'Marketplace',
-      subtitle: 'Sell & Buy Produce',
-      icon: '🛒',
-      route: '/marketplace',
-      gradient: ['#4CAF50', '#66BB6A'],
-      badge: '3'
-    },
-    {
-      id: 'climate',
-      title: 'Weather',
-      subtitle: 'Climate Analysis',
-      icon: '🌤️',
-      route: '/climate',
-      gradient: ['#2196F3', '#42A5F5'],
-      badge: null
-    },
-    {
-      id: 'chatbot',
-      title: 'AI Assistant',
-      subtitle: 'Smart Farming Tips',
-      icon: '🤖',
-      route: '/chatbot',
-      gradient: ['#FF9800', '#FFA726'],
-      badge: null
-    },
-    {
-      id: 'schemes',
-      title: 'Schemes',
-      subtitle: 'Government Benefits',
-      icon: '🏛️',
-      route: '/schemes',
-      gradient: ['#9C27B0', '#BA68C8'],
-      badge: '2'
-    },
-    {
-      id: 'labor',
-      title: 'Labor',
-      subtitle: 'Workforce Management',
-      icon: '👥',
-      route: '/labor',
-      gradient: ['#F44336', '#EF5350'],
-      badge: null
-    }
-  ];
 
-  const quickActions = [
-    { id: 'weather', title: 'Today\'s Weather', icon: '☀️', route: '/climate' },
-    { id: 'prices', title: 'Market Prices', icon: '💰', route: '/marketplace' },
-    { id: 'ai', title: 'Quick Query', icon: '�', route: '/chatbot' },
-    { id: 'alerts', title: 'Alerts', icon: '🔔', route: '/schemes' }
-  ];
-
-  const recentActivities = [
-    { id: '1', title: 'Weather forecast updated', time: '2 hours ago', type: 'weather' },
-    { id: '2', title: 'New scheme available', time: '5 hours ago', type: 'scheme' },
-    { id: '3', title: 'Market price alert: Rice ↗️', time: '1 day ago', type: 'market' }
-  ];
 
   if (isLoading) {
     return (
@@ -183,9 +114,9 @@ const Dashboard = () => {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View>
-            <Text style={styles.greeting}>Hello, {getGreeting()}</Text>
+            <Text style={styles.greeting}>Hello, {getGreeting(currentTime)}</Text>
             <Text style={styles.userName}>{userName || 'Farmer'}</Text>
-            <Text style={styles.date}>{formatDate()}</Text>
+            <Text style={styles.date}>{formatDate(currentTime)}</Text>
           </View>
           <TouchableOpacity 
             style={styles.profileButton} 
@@ -243,7 +174,7 @@ const Dashboard = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Farm Management</Text>
         <View style={styles.modulesGrid}>
-          {modules.map((module, index) => (
+          {dashboardModules.map((module, index) => (
             <TouchableOpacity
               key={module.id}
               style={[

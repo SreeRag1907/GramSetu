@@ -12,21 +12,14 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-interface ChatMessage {
-  id: string;
-  text: string;
-  isUser: boolean;
-  timestamp: Date;
-  category?: string;
-}
-
-interface QuickQuery {
-  id: string;
-  text: string;
-  category: string;
-  icon: string;
-}
+import {
+  ChatMessage,
+  QuickQuery,
+  quickQueries,
+  chatCategories,
+  getWelcomeMessage,
+  getAIResponse,
+} from '../data/chatbot-data';
 
 const Chatbot = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -35,16 +28,7 @@ const Chatbot = () => {
   const [userName, setUserName] = useState('');
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const quickQueries: QuickQuery[] = [
-    { id: '1', text: 'What fertilizer should I use for wheat?', category: 'Fertilizer', icon: '🌾' },
-    { id: '2', text: 'How to control pest in tomato plants?', category: 'Pest Control', icon: '🍅' },
-    { id: '3', text: 'Best time to sow rice?', category: 'Sowing', icon: '🌱' },
-    { id: '4', text: 'Signs of plant diseases in cotton?', category: 'Disease', icon: '🔍' },
-    { id: '5', text: 'Organic farming techniques?', category: 'Organic', icon: '🌿' },
-    { id: '6', text: 'Soil pH testing methods?', category: 'Soil Health', icon: '🧪' },
-    { id: '7', text: 'Water management in drought?', category: 'Irrigation', icon: '💧' },
-    { id: '8', text: 'Market price of sugarcane?', category: 'Market', icon: '💰' },
-  ];
+
 
   useEffect(() => {
     loadUserData();
@@ -61,80 +45,11 @@ const Chatbot = () => {
   };
 
   const initializeChat = () => {
-    const welcomeMessage: ChatMessage = {
-      id: '1',
-      text: `Hello${userName ? `, ${userName}` : ''}! 👋 I'm your AI farming assistant. I can help you with:\n\n🌱 Crop management\n🐛 Pest and disease control\n🌾 Fertilizer recommendations\n💧 Irrigation advice\n📊 Market information\n🌤️ Weather-based farming tips\n\nWhat would you like to know today?`,
-      isUser: false,
-      timestamp: new Date(),
-      category: 'Welcome',
-    };
+    const welcomeMessage = getWelcomeMessage(userName);
     setMessages([welcomeMessage]);
   };
 
-  const getAIResponse = (query: string): string => {
-    const lowerQuery = query.toLowerCase();
-    
-    // Weather-related queries
-    if (lowerQuery.includes('weather') || lowerQuery.includes('rain') || lowerQuery.includes('temperature')) {
-      return "🌤️ Based on current weather data:\n\n• Today: 28°C, partly cloudy\n• Tomorrow: Chance of rain (80%)\n• Recommendation: Delay outdoor activities tomorrow\n\nWould you like detailed weather forecast or farming advisories based on weather conditions?";
-    }
-    
-    // Market price queries
-    if (lowerQuery.includes('price') || lowerQuery.includes('market') || lowerQuery.includes('sell')) {
-      return "💰 Current market prices in your area:\n\n🌾 Wheat: ₹2,450/quintal (↗️ +₹50)\n🌾 Rice: ₹3,200/quintal (↘️ -₹80)\n🍅 Tomato: ₹25/kg (↗️ +₹5)\n🧅 Onion: ₹18/kg (↘️ -₹3)\n\nWould you like to list your produce for sale or get more detailed price trends?";
-    }
-    
-    // Fertilizer queries
-    if (lowerQuery.includes('fertilizer') || lowerQuery.includes('nutrients')) {
-      return "🌱 Fertilizer recommendations:\n\n🌾 For Wheat:\n• NPK 12:32:16 at sowing\n• Urea top-dressing at 45 days\n• Apply based on soil test results\n\n📊 General guidelines:\n• Test soil pH first (ideal: 6.0-7.5)\n• Apply organic manure before chemical fertilizers\n• Follow 4R principles: Right source, Right rate, Right time, Right place\n\nNeed specific recommendations for your crop and soil type?";
-    }
-    
-    // Pest control queries
-    if (lowerQuery.includes('pest') || lowerQuery.includes('insect') || lowerQuery.includes('bug')) {
-      return "🐛 Pest management strategies:\n\n🔍 Identification:\n• Upload photos for pest identification\n• Monitor regularly (weekly checks)\n• Look for eggs, larvae, and damage patterns\n\n🛡️ Control methods:\n• Integrated Pest Management (IPM)\n• Biological controls (beneficial insects)\n• Neem-based organic pesticides\n• Chemical control as last resort\n\nWhich specific pest are you dealing with?";
-    }
-    
-    // Disease queries
-    if (lowerQuery.includes('disease') || lowerQuery.includes('fungus') || lowerQuery.includes('rot')) {
-      return "🦠 Disease management:\n\n🔍 Common symptoms:\n• Leaf spots, wilting, discoloration\n• Stunted growth, rotting\n• Unusual leaf patterns\n\n💊 Treatment approach:\n• Early detection is key\n• Improve air circulation\n• Avoid overhead watering\n• Use disease-resistant varieties\n• Apply fungicides if necessary\n\nDescribe the symptoms you're seeing for specific advice.";
-    }
-    
-    // Irrigation/water management
-    if (lowerQuery.includes('water') || lowerQuery.includes('irrigation') || lowerQuery.includes('drought')) {
-      return "💧 Water management tips:\n\n⏰ Irrigation scheduling:\n• Early morning (6-8 AM) is best\n• Avoid midday watering\n• Water deeply but less frequently\n\n💡 Water conservation:\n• Mulching reduces evaporation\n• Drip irrigation saves 30-40% water\n• Rainwater harvesting\n• Soil moisture monitoring\n\nCurrent soil moisture looks good. Next irrigation recommended in 2-3 days.";
-    }
-    
-    // Soil health
-    if (lowerQuery.includes('soil') || lowerQuery.includes('ph') || lowerQuery.includes('organic')) {
-      return "🌱 Soil health management:\n\n🧪 Soil testing:\n• Test pH, N-P-K, organic matter\n• Test every 2-3 years\n• Collect samples from multiple points\n\n🌿 Improving soil health:\n• Add organic matter (compost, FYM)\n• Crop rotation practices\n• Cover cropping in off-season\n• Reduce tillage when possible\n\nWould you like guidance on soil testing or specific soil improvement methods?";
-    }
-    
-    // Sowing/planting
-    if (lowerQuery.includes('sow') || lowerQuery.includes('plant') || lowerQuery.includes('seed')) {
-      return "🌱 Sowing guidelines:\n\n📅 Optimal timing:\n• Check local weather forecast\n• Ensure soil moisture is adequate\n• Consider variety-specific requirements\n\n🌾 Best practices:\n• Treat seeds before sowing\n• Maintain proper depth and spacing\n• Ensure good seed-soil contact\n• Monitor germination rates\n\nCurrent conditions are favorable for sowing. Which crop are you planning to sow?";
-    }
-    
-    // Government schemes
-    if (lowerQuery.includes('scheme') || lowerQuery.includes('government') || lowerQuery.includes('subsidy')) {
-      return "🏛️ Available government schemes:\n\n💰 Financial support:\n• PM-KISAN: ₹6,000/year direct benefit\n• Crop insurance schemes\n• Interest subvention on loans\n\n🌾 Agricultural schemes:\n• Soil health card scheme\n• Pradhan Mantri Fasal Bima Yojana\n• National Mission for Sustainable Agriculture\n\nWould you like help applying for any specific scheme?";
-    }
-    
-    // Crop-specific queries
-    if (lowerQuery.includes('wheat')) {
-      return "🌾 Wheat farming tips:\n\n📅 Current stage advice:\n• Monitor for rust diseases\n• Apply nitrogen if needed\n• Check for aphid infestation\n\n💡 Best practices:\n• Sowing: November-December\n• Varieties: HD-2967, PBW-725\n• Irrigation: 4-5 times during season\n• Harvest: March-April\n\nNeed specific advice for your wheat crop stage?";
-    }
-    
-    if (lowerQuery.includes('rice')) {
-      return "🌾 Rice cultivation guidance:\n\n🌱 Current recommendations:\n• Maintain 2-3 cm water level\n• Watch for blast disease\n• Apply potash at panicle initiation\n\n📊 Key practices:\n• Transplanting: 25-30 days after sowing\n• Spacing: 20x15 cm\n• Water management: Continuous flooding\n• Harvest: When 80% grains are golden\n\nWhat specific aspect of rice farming do you need help with?";
-    }
-    
-    if (lowerQuery.includes('cotton')) {
-      return "🌿 Cotton farming advice:\n\n🐛 Pest management focus:\n• Monitor for bollworm\n• Check for whitefly infestation\n• Use pheromone traps\n\n💧 Water management:\n• Critical stages: squaring, flowering\n• Avoid water stress during boll formation\n• Maintain proper drainage\n\nCurrent weather is favorable for cotton. Any specific issues you're facing?";
-    }
-    
-    // Default response
-    return `🤔 I understand you're asking about "${query}". While I don't have a specific answer for that right now, here are some resources that might help:\n\n📚 General farming tips:\n• Consult your local agricultural officer\n• Check with nearby successful farmers\n• Visit the nearest Krishi Vigyan Kendra (KVK)\n\n📱 You can also try asking about:\n• Specific crop problems\n• Weather and irrigation\n• Pest and disease management\n• Market prices and selling\n\nIs there a more specific farming question I can help you with?`;
-  };
+
 
   const sendMessage = async (messageText?: string) => {
     const textToSend = messageText || inputText.trim();
@@ -146,6 +61,7 @@ const Chatbot = () => {
       text: textToSend,
       isUser: true,
       timestamp: new Date(),
+      category: 'User',
     };
 
     setMessages(prev => [...prev, userMessage]);

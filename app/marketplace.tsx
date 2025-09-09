@@ -12,29 +12,16 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-interface ProduceListing {
-  id: string;
-  crop: string;
-  quantity: string;
-  price: string;
-  unit: string;
-  negotiable: boolean;
-  farmerName: string;
-  location: string;
-  phone: string;
-  datePosted: string;
-  image?: string;
-}
-
-interface MarketPrice {
-  crop: string;
-  market: string;
-  price: string;
-  unit: string;
-  trend: 'up' | 'down' | 'stable';
-  change: string;
-}
+import {
+  ProduceListing,
+  MarketPrice,
+  mockMarketPrices,
+  mockListings,
+  cropUnits,
+  getTrendIcon,
+  getTrendColor,
+  initialListingForm,
+} from '../data/marketplace-data';
 
 const Marketplace = () => {
   const [activeTab, setActiveTab] = useState<'sell' | 'prices' | 'listings'>('sell');
@@ -43,20 +30,14 @@ const Marketplace = () => {
   const [marketPrices, setMarketPrices] = useState<MarketPrice[]>([]);
   const [userLocation, setUserLocation] = useState('');
 
-  const [newListing, setNewListing] = useState({
-    crop: '',
-    quantity: '',
-    price: '',
-    unit: 'quintal',
-    negotiable: false,
-  });
+  const [newListing, setNewListing] = useState(initialListingForm);
 
   const commonCrops = [
     'Rice', 'Wheat', 'Sugarcane', 'Cotton', 'Maize', 'Bajra', 'Jowar',
     'Barley', 'Gram', 'Tur', 'Mustard', 'Groundnut', 'Soybean', 'Tomato', 'Onion', 'Potato'
   ];
 
-  const units = ['kg', 'quintal', 'ton', 'bag', 'piece'];
+  const units = ['quintal', 'kg', 'ton', 'bag', 'piece'];
 
   useEffect(() => {
     loadUserData();
@@ -76,45 +57,7 @@ const Marketplace = () => {
   };
 
   const loadMarketData = () => {
-    // Mock market prices data
-    const mockPrices: MarketPrice[] = [
-      { crop: 'Wheat', market: 'Mandi Samiti', price: '2,450', unit: 'quintal', trend: 'up', change: '+50' },
-      { crop: 'Rice', market: 'Local Market', price: '3,200', unit: 'quintal', trend: 'down', change: '-80' },
-      { crop: 'Cotton', market: 'APMC', price: '5,800', unit: 'quintal', trend: 'stable', change: '0' },
-      { crop: 'Sugarcane', market: 'Sugar Mill', price: '350', unit: 'quintal', trend: 'up', change: '+15' },
-      { crop: 'Tomato', market: 'Vegetable Market', price: '25', unit: 'kg', trend: 'up', change: '+5' },
-      { crop: 'Onion', market: 'Wholesale Market', price: '18', unit: 'kg', trend: 'down', change: '-3' },
-    ];
-
-    // Mock listings data
-    const mockListings: ProduceListing[] = [
-      {
-        id: '1',
-        crop: 'Wheat',
-        quantity: '50',
-        price: '2,400',
-        unit: 'quintal',
-        negotiable: true,
-        farmerName: 'Ramesh Kumar',
-        location: 'Bharatpur, Rajasthan',
-        phone: '9876543210',
-        datePosted: '2024-01-15',
-      },
-      {
-        id: '2',
-        crop: 'Rice',
-        quantity: '100',
-        price: '3,150',
-        unit: 'quintal',
-        negotiable: false,
-        farmerName: 'Suresh Patel',
-        location: 'Kota, Rajasthan',
-        phone: '9876543211',
-        datePosted: '2024-01-14',
-      },
-    ];
-
-    setMarketPrices(mockPrices);
+    setMarketPrices(mockMarketPrices);
     setListings(mockListings);
   };
 
@@ -151,21 +94,7 @@ const Marketplace = () => {
     }
   };
 
-  const getTrendIcon = (trend: string) => {
-    switch (trend) {
-      case 'up': return '📈';
-      case 'down': return '📉';
-      default: return '➡️';
-    }
-  };
 
-  const getTrendColor = (trend: string) => {
-    switch (trend) {
-      case 'up': return '#4CAF50';
-      case 'down': return '#F44336';
-      default: return '#FF9800';
-    }
-  };
 
   const renderSellTab = () => (
     <View style={styles.tabContent}>

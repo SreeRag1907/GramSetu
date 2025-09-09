@@ -2,15 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const languages = [
-  { code: 'en', name: 'English', native: 'English' },
-  { code: 'hi', name: 'Hindi', native: 'हिंदी' },
-  { code: 'mr', name: 'Marathi', native: 'मराठी' },
-  { code: 'gu', name: 'Gujarati', native: 'ગુજરાતી' },
-  { code: 'ta', name: 'Tamil', native: 'தமிழ்' },
-  { code: 'bn', name: 'Bengali', native: 'বাংলা' },
-];
+import { languages } from '../../data/onboarding-data';
 
 const LanguageSelection = () => {
   const [selectedLanguage, setSelectedLanguage] = useState('');

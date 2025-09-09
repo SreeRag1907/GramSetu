@@ -10,36 +10,9 @@ import {
   PanResponder
 } from 'react-native';
 import { router } from 'expo-router';
+import { onboardingData, OnboardingItem } from '../data/onboarding-data';
 
 const { width: screenWidth } = Dimensions.get('window');
-
-interface OnboardingItem {
-  id: number;
-  title: string;
-  subtitle: string;
-  description: string;
-}
-
-const onboardingData: OnboardingItem[] = [
-  {
-    id: 1,
-    title: 'Smart Solutions',
-    subtitle: 'Modern Farmers',
-    description: 'Empowering farmers with smart tools for better yields and decisions',
-  },
-  {
-    id: 2,
-    title: 'AI-Powered',
-    subtitle: 'Farming Assistant',
-    description: 'Get intelligent recommendations for crops, weather, and market prices',
-  },
-  {
-    id: 3,
-    title: 'Connect & Grow',
-    subtitle: 'Together',
-    description: 'Join a community of modern farmers sharing knowledge and resources',
-  },
-];
 
 const GetStartedScreen = () => {
   const [currentIndex, setCurrentIndex] = useState(0);

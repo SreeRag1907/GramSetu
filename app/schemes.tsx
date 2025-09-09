@@ -12,28 +12,17 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-interface Scheme {
-  id: string;
-  title: string;
-  description: string;
-  eligibility: string[];
-  benefits: string;
-  documents: string[];
-  deadline: string;
-  category: string;
-  icon: string;
-  status: 'active' | 'coming_soon' | 'expired';
-}
-
-interface Application {
-  id: string;
-  schemeId: string;
-  schemeName: string;
-  applicationDate: string;
-  status: 'pending' | 'approved' | 'rejected' | 'under_review';
-  remarks?: string;
-}
+import {
+  Scheme,
+  Application,
+  categories,
+  mockSchemes,
+  mockApplications,
+  getStatusColor,
+  getStatusIcon,
+  validateApplicationForm,
+  initialApplicationForm,
+} from '../data/schemes-data';
 
 const Schemes = () => {
   const [schemes, setSchemes] = useState<Scheme[]>([]);
@@ -42,27 +31,8 @@ const Schemes = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [selectedScheme, setSelectedScheme] = useState<Scheme | null>(null);
-  const [applicationForm, setApplicationForm] = useState({
-    farmerName: '',
-    fatherName: '',
-    aadharNumber: '',
-    mobileNumber: '',
-    address: '',
-    landHolding: '',
-    cropType: '',
-    bankAccount: '',
-    ifscCode: '',
-  });
+  const [applicationForm, setApplicationForm] = useState(initialApplicationForm);
   const [loading, setLoading] = useState(true);
-
-  const categories = [
-    { id: 'all', name: 'All Schemes', icon: '📋' },
-    { id: 'credit', name: 'Credit & Loans', icon: '💰' },
-    { id: 'insurance', name: 'Insurance', icon: '🛡️' },
-    { id: 'subsidy', name: 'Subsidies', icon: '🎯' },
-    { id: 'technology', name: 'Technology', icon: '🚜' },
-    { id: 'training', name: 'Training', icon: '📚' },
-  ];
 
   useEffect(() => {
     loadSchemesData();
@@ -72,107 +42,7 @@ const Schemes = () => {
   const loadSchemesData = async () => {
     try {
       setLoading(true);
-      
-      // Mock schemes data
-      const mockSchemes: Scheme[] = [
-        {
-          id: '1',
-          title: 'PM-KISAN Samman Nidhi',
-          description: 'Direct income support of ₹6,000 per year to small and marginal farmers.',
-          eligibility: [
-            'Small and marginal farmers with landholding up to 2 hectares',
-            'Valid Aadhar card and bank account',
-            'Land ownership documents required'
-          ],
-          benefits: '₹6,000 per year in three installments of ₹2,000 each',
-          documents: ['Aadhar Card', 'Bank Account Details', 'Land Records', 'Mobile Number'],
-          deadline: '2024-03-31',
-          category: 'credit',
-          icon: '💰',
-          status: 'active',
-        },
-        {
-          id: '2',
-          title: 'Pradhan Mantri Fasal Bima Yojana',
-          description: 'Crop insurance scheme providing comprehensive risk coverage for crops.',
-          eligibility: [
-            'All farmers including sharecroppers and tenant farmers',
-            'Coverage for notified crops in notified areas',
-            'Must have insurable interest in the crop'
-          ],
-          benefits: 'Coverage against natural calamities, pests, and diseases',
-          documents: ['Aadhar Card', 'Bank Account', 'Land Records', 'Sowing Certificate'],
-          deadline: '2024-02-15',
-          category: 'insurance',
-          icon: '🛡️',
-          status: 'active',
-        },
-        {
-          id: '3',
-          title: 'Soil Health Card Scheme',
-          description: 'Free soil testing and nutrient recommendations for farmers.',
-          eligibility: [
-            'All farmers with agricultural land',
-            'Valid land ownership or tenancy documents',
-            'No minimum land holding requirement'
-          ],
-          benefits: 'Free soil testing and fertilizer recommendations',
-          documents: ['Aadhar Card', 'Land Documents', 'Contact Number'],
-          deadline: 'Ongoing',
-          category: 'subsidy',
-          icon: '🌱',
-          status: 'active',
-        },
-        {
-          id: '4',
-          title: 'Kisan Credit Card (KCC)',
-          description: 'Credit facility for agricultural and allied activities.',
-          eligibility: [
-            'All farmers including tenant farmers',
-            'Land ownership or valid tenancy documents',
-            'Good credit history preferred'
-          ],
-          benefits: 'Credit up to ₹3 lakhs at subsidized interest rates',
-          documents: ['Aadhar Card', 'PAN Card', 'Land Records', 'Bank Statements'],
-          deadline: 'Ongoing',
-          category: 'credit',
-          icon: '💳',
-          status: 'active',
-        },
-        {
-          id: '5',
-          title: 'Sub-Mission on Agricultural Mechanization',
-          description: 'Financial assistance for purchase of agricultural machinery.',
-          eligibility: [
-            'Individual farmers and farmer groups',
-            'Scheduled Caste/Scheduled Tribe farmers get priority',
-            'Women farmers eligible for additional benefits'
-          ],
-          benefits: '40-50% subsidy on agricultural machinery',
-          documents: ['Aadhar Card', 'Bank Account', 'Caste Certificate (if applicable)', 'Quotation'],
-          deadline: '2024-04-30',
-          category: 'technology',
-          icon: '🚜',
-          status: 'active',
-        },
-        {
-          id: '6',
-          title: 'Rashtriya Krishi Vikas Yojana',
-          description: 'Comprehensive agricultural development scheme with multiple components.',
-          eligibility: [
-            'Farmer Producer Organizations (FPOs)',
-            'Self Help Groups (SHGs)',
-            'Individual farmers for specific components'
-          ],
-          benefits: 'Support for infrastructure, technology adoption, and capacity building',
-          documents: ['Organization Registration', 'Project Proposal', 'Bank Account', 'Aadhar Cards of Members'],
-          deadline: '2024-06-15',
-          category: 'training',
-          icon: '📈',
-          status: 'active',
-        },
-      ];
-
+      // Load schemes from static data
       setSchemes(mockSchemes);
       setLoading(false);
     } catch (error) {
@@ -183,51 +53,14 @@ const Schemes = () => {
 
   const loadApplicationsData = async () => {
     try {
-      // Mock applications data
-      const mockApplications: Application[] = [
-        {
-          id: '1',
-          schemeId: '1',
-          schemeName: 'PM-KISAN Samman Nidhi',
-          applicationDate: '2024-01-10',
-          status: 'approved',
-          remarks: 'Application approved. First installment credited to bank account.',
-        },
-        {
-          id: '2',
-          schemeId: '2',
-          schemeName: 'Pradhan Mantri Fasal Bima Yojana',
-          applicationDate: '2024-01-08',
-          status: 'under_review',
-          remarks: 'Documents under verification by insurance company.',
-        },
-      ];
-
+      // Load applications from static data
       setApplications(mockApplications);
     } catch (error) {
       console.error('Error loading applications:', error);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'approved': return '#4CAF50';
-      case 'pending': return '#FF9800';
-      case 'under_review': return '#2196F3';
-      case 'rejected': return '#F44336';
-      default: return '#666';
-    }
-  };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'approved': return '✅';
-      case 'pending': return '⏳';
-      case 'under_review': return '🔍';
-      case 'rejected': return '❌';
-      default: return '📋';
-    }
-  };
 
   const filteredSchemes = selectedCategory === 'all' 
     ? schemes 
@@ -254,8 +87,7 @@ const Schemes = () => {
     if (!selectedScheme) return;
 
     // Validate required fields
-    const requiredFields = ['farmerName', 'aadharNumber', 'mobileNumber', 'address'];
-    const missingFields = requiredFields.filter(field => !applicationForm[field as keyof typeof applicationForm]);
+    const missingFields = validateApplicationForm(applicationForm);
 
     if (missingFields.length > 0) {
       Alert.alert('Error', 'Please fill all required fields');
@@ -274,17 +106,7 @@ const Schemes = () => {
 
       setApplications(prev => [newApplication, ...prev]);
       setShowApplicationModal(false);
-      setApplicationForm({
-        farmerName: '',
-        fatherName: '',
-        aadharNumber: '',
-        mobileNumber: '',
-        address: '',
-        landHolding: '',
-        cropType: '',
-        bankAccount: '',
-        ifscCode: '',
-      });
+      setApplicationForm(initialApplicationForm);
 
       Alert.alert(
         'Success!', 

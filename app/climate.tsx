@@ -10,33 +10,20 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
+import {
+  WeatherData,
+  ForecastDay,
+  Advisory,
+  mockCurrentWeather,
+  mockForecast,
+  mockAdvisories,
+  weatherParameters,
+  historicalData,
+  getPriorityColor,
+  getWeatherConditionIcon,
+} from '../data/climate-data';
 
-interface WeatherData {
-  temperature: number;
-  humidity: number;
-  windSpeed: number;
-  condition: string;
-  icon: string;
-}
 
-interface ForecastDay {
-  date: string;
-  day: string;
-  high: number;
-  low: number;
-  condition: string;
-  icon: string;
-  rainChance: number;
-}
-
-interface Advisory {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  priority: 'high' | 'medium' | 'low';
-  category: string;
-}
 
 const ClimateAnalysis = () => {
   const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null);
@@ -62,60 +49,7 @@ const ClimateAnalysis = () => {
         setLocationName(`${address.city || address.district || 'Unknown'}, ${address.region || ''}`);
       }
 
-      // Mock weather data
-      const mockCurrentWeather: WeatherData = {
-        temperature: 28,
-        humidity: 65,
-        windSpeed: 12,
-        condition: 'Partly Cloudy',
-        icon: '⛅',
-      };
-
-      const mockForecast: ForecastDay[] = [
-        { date: '2024-01-16', day: 'Today', high: 30, low: 18, condition: 'Sunny', icon: '☀️', rainChance: 10 },
-        { date: '2024-01-17', day: 'Tomorrow', high: 28, low: 16, condition: 'Partly Cloudy', icon: '⛅', rainChance: 20 },
-        { date: '2024-01-18', day: 'Wed', high: 25, low: 14, condition: 'Rainy', icon: '🌧️', rainChance: 80 },
-        { date: '2024-01-19', day: 'Thu', high: 26, low: 15, condition: 'Cloudy', icon: '☁️', rainChance: 40 },
-        { date: '2024-01-20', day: 'Fri', high: 29, low: 17, condition: 'Sunny', icon: '☀️', rainChance: 5 },
-        { date: '2024-01-21', day: 'Sat', high: 31, low: 19, condition: 'Hot', icon: '🌡️', rainChance: 0 },
-        { date: '2024-01-22', day: 'Sun', high: 27, low: 16, condition: 'Windy', icon: '💨', rainChance: 15 },
-      ];
-
-      const mockAdvisories: Advisory[] = [
-        {
-          id: '1',
-          title: 'Rain Expected Tomorrow',
-          description: 'Heavy rainfall expected tomorrow. Consider postponing harvest activities and ensure proper drainage in fields.',
-          icon: '🌧️',
-          priority: 'high',
-          category: 'Weather Alert',
-        },
-        {
-          id: '2',
-          title: 'Optimal Sowing Conditions',
-          description: 'Current soil moisture and temperature conditions are ideal for sowing wheat. Consider starting within the next 3-4 days.',
-          icon: '🌱',
-          priority: 'medium',
-          category: 'Farming Advisory',
-        },
-        {
-          id: '3',
-          title: 'Irrigation Recommendation',
-          description: 'No irrigation needed for the next 2 days due to expected rainfall. This will save water and reduce costs.',
-          icon: '💧',
-          priority: 'medium',
-          category: 'Water Management',
-        },
-        {
-          id: '4',
-          title: 'Pest Alert',
-          description: 'Current humid conditions may increase pest activity. Monitor crops closely and consider preventive measures.',
-          icon: '🐛',
-          priority: 'high',
-          category: 'Pest Management',
-        },
-      ];
-
+      // Load mock weather data from data file
       setCurrentWeather(mockCurrentWeather);
       setForecast(mockForecast);
       setAdvisories(mockAdvisories);
@@ -127,14 +61,7 @@ const ClimateAnalysis = () => {
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return '#F44336';
-      case 'medium': return '#FF9800';
-      case 'low': return '#4CAF50';
-      default: return '#666';
-    }
-  };
+
 
   const renderCurrentWeather = () => (
     <View style={styles.tabContent}>

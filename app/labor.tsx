@@ -12,41 +12,25 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  Laborer,
+  WorkEntry,
+  PaymentRecord,
+  mockLaborers,
+  mockWorkEntries,
+  mockPayments,
+  commonTasks,
+  wageTypes,
+  paymentMethods,
+  initialLaborerForm,
+  initialWorkEntryForm,
+  calculateWage,
+  getWageTypeLabel,
+  formatCurrency,
+  getPaymentMethodIcon,
+} from '../data/labor-data';
 
-interface Laborer {
-  id: string;
-  name: string;
-  phoneNumber: string;
-  wageRate: number;
-  wageType: 'daily' | 'hourly' | 'piece';
-  joiningDate: string;
-  totalEarnings: number;
-  totalHours: number;
-  totalDays: number;
-  isActive: boolean;
-}
 
-interface WorkEntry {
-  id: string;
-  laborerId: string;
-  date: string;
-  hours?: number;
-  task: string;
-  description: string;
-  calculatedWage: number;
-  isPaid: boolean;
-  paymentDate?: string;
-}
-
-interface PaymentRecord {
-  id: string;
-  laborerId: string;
-  amount: number;
-  date: string;
-  workEntryIds: string[];
-  paymentMethod: 'cash' | 'bank_transfer' | 'upi';
-  notes?: string;
-}
 
 const LaborManagement = () => {
   const [activeTab, setActiveTab] = useState<'laborers' | 'work' | 'payments'>('laborers');
@@ -60,28 +44,12 @@ const LaborManagement = () => {
   
   const [selectedLaborer, setSelectedLaborer] = useState<Laborer | null>(null);
   
-  const [newLaborer, setNewLaborer] = useState({
-    name: '',
-    phoneNumber: '',
-    wageRate: '',
-    wageType: 'daily' as 'daily' | 'hourly' | 'piece',
-  });
-
-  const [newWorkEntry, setNewWorkEntry] = useState({
-    date: new Date().toISOString().split('T')[0],
-    hours: '',
-    task: '',
-    description: '',
-  });
+  const [newLaborer, setNewLaborer] = useState(initialLaborerForm);
+  const [newWorkEntry, setNewWorkEntry] = useState(initialWorkEntryForm);
 
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bank_transfer' | 'upi'>('cash');
   const [paymentNotes, setPaymentNotes] = useState('');
-
-  const commonTasks = [
-    'Field Preparation', 'Sowing', 'Weeding', 'Irrigation', 'Fertilizer Application',
-    'Pest Control', 'Harvesting', 'Threshing', 'Loading/Unloading', 'General Farm Work'
-  ];
 
   useEffect(() => {
     loadData();
@@ -89,92 +57,7 @@ const LaborManagement = () => {
 
   const loadData = async () => {
     try {
-      // Mock data for demonstration
-      const mockLaborers: Laborer[] = [
-        {
-          id: '1',
-          name: 'Rajesh Kumar',
-          phoneNumber: '9876543210',
-          wageRate: 350,
-          wageType: 'daily',
-          joiningDate: '2024-01-01',
-          totalEarnings: 8750,
-          totalHours: 200,
-          totalDays: 25,
-          isActive: true,
-        },
-        {
-          id: '2',
-          name: 'Sunita Devi',
-          phoneNumber: '9876543211',
-          wageRate: 40,
-          wageType: 'hourly',
-          joiningDate: '2024-01-05',
-          totalEarnings: 4800,
-          totalHours: 120,
-          totalDays: 20,
-          isActive: true,
-        },
-        {
-          id: '3',
-          name: 'Mohan Singh',
-          phoneNumber: '9876543212',
-          wageRate: 300,
-          wageType: 'daily',
-          joiningDate: '2023-12-15',
-          totalEarnings: 12600,
-          totalHours: 336,
-          totalDays: 42,
-          isActive: false,
-        },
-      ];
-
-      const mockWorkEntries: WorkEntry[] = [
-        {
-          id: '1',
-          laborerId: '1',
-          date: '2024-01-15',
-          hours: 8,
-          task: 'Field Preparation',
-          description: 'Plowing and leveling the field for wheat sowing',
-          calculatedWage: 350,
-          isPaid: true,
-          paymentDate: '2024-01-15',
-        },
-        {
-          id: '2',
-          laborerId: '1',
-          date: '2024-01-14',
-          hours: 6,
-          task: 'Irrigation',
-          description: 'Setting up irrigation channels',
-          calculatedWage: 350,
-          isPaid: false,
-        },
-        {
-          id: '3',
-          laborerId: '2',
-          date: '2024-01-15',
-          hours: 5,
-          task: 'Weeding',
-          description: 'Manual weeding in tomato field',
-          calculatedWage: 200,
-          isPaid: false,
-        },
-      ];
-
-      const mockPayments: PaymentRecord[] = [
-        {
-          id: '1',
-          laborerId: '1',
-          amount: 1750,
-          date: '2024-01-15',
-          workEntryIds: ['1'],
-          paymentMethod: 'cash',
-          notes: 'Payment for 5 days work',
-        },
-      ];
-
+      // Load data from imported mock data
       setLaborers(mockLaborers);
       setWorkEntries(mockWorkEntries);
       setPayments(mockPayments);
@@ -203,7 +86,7 @@ const LaborManagement = () => {
     };
 
     setLaborers([...laborers, laborer]);
-    setNewLaborer({ name: '', phoneNumber: '', wageRate: '', wageType: 'daily' });
+    setNewLaborer(initialLaborerForm);
     setShowAddLaborerModal(false);
     Alert.alert('Success', 'Laborer added successfully!');
   };
@@ -215,19 +98,7 @@ const LaborManagement = () => {
     }
 
     const hours = parseFloat(newWorkEntry.hours);
-    let calculatedWage = 0;
-
-    switch (selectedLaborer.wageType) {
-      case 'hourly':
-        calculatedWage = hours * selectedLaborer.wageRate;
-        break;
-      case 'daily':
-        calculatedWage = selectedLaborer.wageRate;
-        break;
-      case 'piece':
-        calculatedWage = selectedLaborer.wageRate;
-        break;
-    }
+    const calculatedWage = calculateWage(selectedLaborer, hours);
 
     const workEntry: WorkEntry = {
       id: Date.now().toString(),
@@ -255,12 +126,7 @@ const LaborManagement = () => {
     });
     setLaborers(updatedLaborers);
 
-    setNewWorkEntry({
-      date: new Date().toISOString().split('T')[0],
-      hours: '',
-      task: '',
-      description: '',
-    });
+    setNewWorkEntry(initialWorkEntryForm);
     setShowLogWorkModal(false);
     Alert.alert('Success', 'Work logged successfully!');
   };
@@ -346,12 +212,12 @@ const LaborManagement = () => {
 
       <Text style={styles.laborerPhone}>📞 {laborer.phoneNumber}</Text>
       <Text style={styles.wageInfo}>
-        💰 ₹{laborer.wageRate} per {laborer.wageType}
+        💰 {formatCurrency(laborer.wageRate)} {getWageTypeLabel(laborer.wageType)}
       </Text>
 
       <View style={styles.laborerStats}>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>₹{laborer.totalEarnings}</Text>
+          <Text style={styles.statValue}>{formatCurrency(laborer.totalEarnings)}</Text>
           <Text style={styles.statLabel}>Total Earned</Text>
         </View>
         <View style={styles.statItem}>
@@ -359,7 +225,7 @@ const LaborManagement = () => {
           <Text style={styles.statLabel}>Days Worked</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>₹{getPendingWages(laborer.id)}</Text>
+          <Text style={styles.statValue}>{formatCurrency(getPendingWages(laborer.id))}</Text>
           <Text style={styles.statLabel}>Pending</Text>
         </View>
       </View>
