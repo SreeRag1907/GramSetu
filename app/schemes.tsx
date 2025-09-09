@@ -399,26 +399,48 @@ const Schemes = () => {
       </View>
 
       {activeTab === 'available' && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesContainer}>
-          {categories.map(category => (
-            <TouchableOpacity
-              key={category.id}
-              style={[
-                styles.categoryButton,
-                selectedCategory === category.id && styles.selectedCategoryButton
-              ]}
-              onPress={() => setSelectedCategory(category.id)}
-            >
-              <Text style={styles.categoryIcon}>{category.icon}</Text>
-              <Text style={[
-                styles.categoryText,
-                selectedCategory === category.id && styles.selectedCategoryText
-              ]}>
-                {category.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <View style={styles.filtersSection}>
+          <View style={styles.filterHeader}>
+            <Text style={styles.filterTitle}>Categories</Text>
+            <Text style={styles.filterSubtitle}>Select a category to filter schemes</Text>
+          </View>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            contentContainerStyle={styles.categoriesScrollContainer}
+            style={styles.categoriesContainer}
+          >
+            {categories.map((category, index) => (
+              <TouchableOpacity
+                key={category.id}
+                style={[
+                  styles.categoryChip,
+                  selectedCategory === category.id && styles.selectedCategoryChip,
+                  index === 0 && styles.firstCategory,
+                  index === categories.length - 1 && styles.lastCategory
+                ]}
+                onPress={() => setSelectedCategory(category.id)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.categoryChipContent}>
+                  <Text style={[
+                    styles.categoryChipIcon,
+                    selectedCategory === category.id && styles.selectedCategoryChipIcon
+                  ]}>
+                    {category.icon}
+                  </Text>
+                  <Text style={[
+                    styles.categoryChipText,
+                    selectedCategory === category.id && styles.selectedCategoryChipText
+                  ]}>
+                    {category.name}
+                  </Text>
+                </View>
+                {selectedCategory === category.id && <View style={styles.selectedIndicator} />}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
       )}
 
       <ScrollView style={styles.content}>
@@ -625,194 +647,287 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     backgroundColor: 'white',
-    elevation: 2,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   tab: {
     flex: 1,
-    paddingVertical: 15,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
     alignItems: 'center',
-    borderBottomWidth: 2,
+    justifyContent: 'center',
+    borderBottomWidth: 3,
     borderBottomColor: 'transparent',
+    minHeight: 50,
   },
   activeTab: {
     borderBottomColor: '#9C27B0',
+    backgroundColor: 'rgba(156, 39, 176, 0.05)',
   },
   tabText: {
     fontSize: 14,
     color: '#666',
     fontWeight: '600',
+    textAlign: 'center',
+    flexShrink: 1,
   },
   activeTabText: {
     color: '#9C27B0',
+    fontWeight: '700',
   },
-  categoriesContainer: {
+  filtersSection: {
     backgroundColor: 'white',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: '#F0F0F0',
   },
-  categoryButton: {
-    backgroundColor: '#F0F0F0',
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    marginRight: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#DDD',
+  filterHeader: {
+    marginBottom: 12,
   },
-  selectedCategoryButton: {
-    backgroundColor: '#9C27B0',
-    borderColor: '#9C27B0',
-  },
-  categoryIcon: {
+  filterTitle: {
     fontSize: 16,
-    marginRight: 5,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
   },
-  categoryText: {
+  filterSubtitle: {
     fontSize: 12,
     color: '#666',
+  },
+  categoriesContainer: {
+    flexGrow: 0,
+  },
+  categoriesScrollContainer: {
+    paddingRight: 20,
+  },
+  categoryChip: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+    minWidth: 80,
+    maxWidth: 120,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  selectedCategoryChip: {
+    backgroundColor: '#E8F5E8',
+    borderColor: '#4CAF50',
+  },
+  firstCategory: {
+    marginLeft: 0,
+  },
+  lastCategory: {
+    marginRight: 0,
+  },
+  categoryChipContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryChipIcon: {
+    fontSize: 14,
+    marginRight: 4,
+  },
+  selectedCategoryChipIcon: {
+    color: '#4CAF50',
+  },
+  categoryChipText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#495057',
+    textAlign: 'center',
+  },
+  selectedCategoryChipText: {
+    color: '#2E7D32',
     fontWeight: '600',
   },
-  selectedCategoryText: {
-    color: 'white',
+  selectedIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 2,
   },
   content: {
     flex: 1,
   },
   schemesContainer: {
-    padding: 15,
+    padding: 16,
+    paddingBottom: 24,
   },
   schemeCard: {
     backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 15,
-    elevation: 2,
+    borderRadius: 16,
+    padding: 18,
+    marginHorizontal: 2,
+    marginBottom: 16,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    borderWidth: 0.5,
+    borderColor: '#E0E0E0',
   },
   schemeHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 15,
+    marginBottom: 16,
+    minHeight: 60,
   },
   schemeIcon: {
-    fontSize: 32,
-    marginRight: 15,
+    fontSize: 36,
+    marginRight: 16,
+    marginTop: 2,
   },
   schemeInfo: {
     flex: 1,
+    paddingRight: 8,
   },
   schemeTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#333',
-    marginBottom: 5,
+    marginBottom: 6,
+    lineHeight: 22,
   },
   schemeBenefits: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#4CAF50',
     fontWeight: '600',
+    lineHeight: 18,
   },
   statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 15,
+    minWidth: 70,
+    alignItems: 'center',
   },
   statusText: {
     fontSize: 10,
     color: 'white',
     fontWeight: 'bold',
+    textTransform: 'uppercase',
   },
   schemeDescription: {
-    fontSize: 15,
-    color: '#333',
-    lineHeight: 22,
-    marginBottom: 15,
+    fontSize: 14,
+    color: '#555',
+    lineHeight: 21,
+    marginBottom: 16,
   },
   schemeDetails: {
-    marginBottom: 15,
+    marginBottom: 16,
+    backgroundColor: '#F8F9FA',
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#9C27B0',
   },
   detailTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 13,
+    fontWeight: '700',
     color: '#333',
     marginBottom: 8,
   },
   detailItem: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#666',
-    lineHeight: 20,
-    marginBottom: 3,
+    lineHeight: 18,
+    marginBottom: 4,
+    paddingLeft: 8,
   },
   schemeFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 15,
+    paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',
+    minHeight: 50,
   },
   deadline: {
     fontSize: 12,
     color: '#FF9800',
     fontWeight: '600',
+    flex: 1,
   },
   applyButton: {
     backgroundColor: '#9C27B0',
-    borderRadius: 8,
+    borderRadius: 10,
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 12,
+    elevation: 2,
+    shadowColor: '#9C27B0',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    minWidth: 100,
   },
   disabledButton: {
     backgroundColor: '#CCC',
+    elevation: 0,
+    shadowOpacity: 0,
   },
   applyButtonText: {
     color: 'white',
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    textAlign: 'center',
   },
   applicationsContainer: {
-    padding: 15,
+    padding: 16,
+    paddingBottom: 24,
   },
   applicationCard: {
     backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 15,
-    elevation: 1,
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 2,
+    marginBottom: 16,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: 4,
+    borderWidth: 0.5,
+    borderColor: '#E0E0E0',
   },
   applicationHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 10,
+    marginBottom: 12,
+    minHeight: 40,
   },
   applicationTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '700',
     color: '#333',
     flex: 1,
-    marginRight: 10,
+    marginRight: 12,
+    lineHeight: 20,
   },
   applicationStatus: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    minWidth: 80,
+    alignItems: 'center',
   },
   applicationStatusText: {
     fontSize: 10,
     color: 'white',
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   applicationDate: {
     fontSize: 12,
@@ -873,26 +988,36 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '90%',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '92%',
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
+    minHeight: 60,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#333',
+    flex: 1,
   },
   closeButton: {
-    fontSize: 24,
+    fontSize: 28,
     color: '#666',
+    fontWeight: '300',
+    padding: 4,
   },
   schemePreview: {
     backgroundColor: '#F8F9FA',
