@@ -12,7 +12,12 @@
     "viewAll": "View all",
     "todayWeather": "Today's Weather",
     "goodDayFarming": "Good day for farming",
-    "humidity": "Humidity"
+    "humidity": "Humidity",
+    "activities": {
+      "weatherUpdate": "Weather forecast updated",
+      "newScheme": "New scheme available",
+      "priceAlert": "Market price alert: Rice ↗️"
+    }
   },
   "profile": {
     "menu": "Profile Menu",

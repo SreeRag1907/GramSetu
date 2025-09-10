@@ -12,7 +12,12 @@
     "viewAll": "બધું જુઓ",
     "todayWeather": "આજનું હવામાન",
     "goodDayFarming": "ખેતી માટે સારો દિવસ",
-    "humidity": "ભેજ"
+    "humidity": "ભેજ",
+    "activities": {
+      "weatherUpdate": "હવામાન આગાહી અપડેટ થઈ",
+      "newScheme": "નવી યોજના ઉપલબ્ધ",
+      "priceAlert": "બજાર કિંમત અલર્ટ: ચોખા ↗️"
+    }
   },
   "profile": {
     "menu": "પ્રોફાઇલ મેનૂ",

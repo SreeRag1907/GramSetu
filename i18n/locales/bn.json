@@ -12,7 +12,12 @@
     "viewAll": "সব দেখুন",
     "todayWeather": "আজকের আবহাওয়া",
     "goodDayFarming": "চাষের জন্য ভালো দিন",
-    "humidity": "আর্দ্রতা"
+    "humidity": "আর্দ্রতা",
+    "activities": {
+      "weatherUpdate": "আবহাওয়ার পূর্বাভাস আপডেট হয়েছে",
+      "newScheme": "নতুন প্রকল্প উপলব্ধ",
+      "priceAlert": "বাজার দর সতর্কতা: চাল ↗️"
+    }
   },
   "profile": {
     "menu": "প্রোফাইল মেনু",

@@ -64,6 +64,15 @@ const Dashboard = () => {
       default: return actionId;
     }
   };
+
+  const getActivityTitle = (activityId: string) => {
+    switch (activityId) {
+      case '1': return t('dashboard.activities.weatherUpdate');
+      case '2': return t('dashboard.activities.newScheme');
+      case '3': return t('dashboard.activities.priceAlert');
+      default: return '';
+    }
+  };
   const [userName, setUserName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -228,7 +237,7 @@ const Dashboard = () => {
               onPress={() => router.push(action.route as any)}
             >
               <Text style={styles.quickActionIcon}>{action.icon}</Text>
-              <Text style={styles.quickActionTitle}>{action.title}</Text>
+              <Text style={styles.quickActionTitle} numberOfLines={2}>{action.title}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -268,7 +277,7 @@ const Dashboard = () => {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{t('dashboard.recentActivities')}</Text>
           <TouchableOpacity>
-            <Text style={styles.viewAllText}>{t.viewAll}</Text>
+            <Text style={styles.viewAllText}>{t('dashboard.viewAll')}</Text>
           </TouchableOpacity>
         </View>
         {recentActivities.map((activity) => (
@@ -280,7 +289,7 @@ const Dashboard = () => {
               </Text>
             </View>
             <View style={styles.activityContent}>
-              <Text style={styles.activityTitle}>{activity.title}</Text>
+              <Text style={styles.activityTitle}>{getActivityTitle(activity.id)}</Text>
               <Text style={styles.activityTime}>{activity.time}</Text>
             </View>
           </View>
@@ -551,10 +560,13 @@ const styles = StyleSheet.create({
   quickActionCard: {
     backgroundColor: 'white',
     borderRadius: 15,
-    padding: 15,
-    marginRight: 12,
+    padding: 16,
+    marginRight: 14,
     alignItems: 'center',
-    minWidth: 80,
+    minWidth: 85,
+    width: 85,
+    height: 90,
+    justifyContent: 'center',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -563,13 +575,14 @@ const styles = StyleSheet.create({
   },
   quickActionIcon: {
     fontSize: 24,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   quickActionTitle: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#333',
     textAlign: 'center',
     fontWeight: '500',
+    lineHeight: 12,
   },
   modulesGrid: {
     flexDirection: 'row',
