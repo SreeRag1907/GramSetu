@@ -12,8 +12,10 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useI18n } from '../../i18n/useI18n';
 
 const Registration = () => {
+  const { t } = useI18n();
   const [formData, setFormData] = useState({
     phoneNumber: '',
     otp: '',
@@ -26,15 +28,31 @@ const Registration = () => {
   const [otpVerified, setOtpVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const crops = [
-    'Rice', 'Wheat', 'Sugarcane', 'Cotton', 'Maize', 'Bajra', 'Jowar',
-    'Barley', 'Gram', 'Tur', 'Mustard', 'Groundnut', 'Soybean', 'Sunflower',
-    'Tomato', 'Onion', 'Potato', 'Chili', 'Other'
+  const getCrops = () => [
+    { id: 'rice', name: t('registration.crops.rice') },
+    { id: 'wheat', name: t('registration.crops.wheat') },
+    { id: 'sugarcane', name: t('registration.crops.sugarcane') },
+    { id: 'cotton', name: t('registration.crops.cotton') },
+    { id: 'maize', name: t('registration.crops.maize') },
+    { id: 'bajra', name: t('registration.crops.bajra') },
+    { id: 'jowar', name: t('registration.crops.jowar') },
+    { id: 'barley', name: t('registration.crops.barley') },
+    { id: 'gram', name: t('registration.crops.gram') },
+    { id: 'tur', name: t('registration.crops.tur') },
+    { id: 'mustard', name: t('registration.crops.mustard') },
+    { id: 'groundnut', name: t('registration.crops.groundnut') },
+    { id: 'soybean', name: t('registration.crops.soybean') },
+    { id: 'sunflower', name: t('registration.crops.sunflower') },
+    { id: 'tomato', name: t('registration.crops.tomato') },
+    { id: 'onion', name: t('registration.crops.onion') },
+    { id: 'potato', name: t('registration.crops.potato') },
+    { id: 'chili', name: t('registration.crops.chili') },
+    { id: 'other', name: t('registration.crops.other') }
   ];
 
   const handleSendOTP = async () => {
     if (formData.phoneNumber.length !== 10) {
-      Alert.alert('Error', 'Please enter a valid 10-digit phone number');
+      Alert.alert(t('common.error'), t('registration.errors.invalidPhone'));
       return;
     }
 
@@ -43,23 +61,23 @@ const Registration = () => {
     setTimeout(() => {
       setOtpSent(true);
       setIsLoading(false);
-      Alert.alert('OTP Sent', `OTP sent to ${formData.phoneNumber}. Use 123456 for demo.`);
+      Alert.alert(t('registration.otpSent'), `${t('registration.otpSentMessage')} ${formData.phoneNumber}. ${t('registration.demoOtp')}`);
     }, 1000);
   };
 
   const handleVerifyOTP = async () => {
     if (formData.otp !== '123456') {
-      Alert.alert('Error', 'Invalid OTP. Use 123456 for demo.');
+      Alert.alert(t('common.error'), t('registration.errors.invalidOtp'));
       return;
     }
 
     setOtpVerified(true);
-    Alert.alert('Success', 'Phone number verified successfully!');
+    Alert.alert(t('common.success'), t('registration.phoneVerified'));
   };
 
   const handleRegistration = async () => {
     if (!formData.name || !formData.village || !formData.district || !formData.primaryCrop) {
-      Alert.alert('Error', 'Please fill all fields');
+      Alert.alert(t('common.error'), t('registration.errors.fillAllFields'));
       return;
     }
 
@@ -71,11 +89,11 @@ const Registration = () => {
       await AsyncStorage.setItem('userPhone', formData.phoneNumber);
       await AsyncStorage.setItem('isOnboarded', 'true');
 
-      Alert.alert('Welcome!', 'Registration completed successfully!', [
-        { text: 'Continue', onPress: () => router.replace('/permissions') }
+      Alert.alert(t('registration.welcome'), t('registration.registrationComplete'), [
+        { text: t('common.continue'), onPress: () => router.replace('/dashboard') }
       ]);
     } catch (error) {
-      Alert.alert('Error', 'Registration failed. Please try again.');
+      Alert.alert(t('common.error'), t('registration.errors.registrationFailed'));
     }
   };
 
@@ -90,19 +108,19 @@ const Registration = () => {
     >
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Join thousands of farmers using GramSetu</Text>
+          <Text style={styles.title}>{t('registration.createAccount')}</Text>
+          <Text style={styles.subtitle}>{t('registration.joinFarmers')}</Text>
         </View>
 
         {/* Phone Number Verification */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📱 Phone Verification</Text>
+          <Text style={styles.sectionTitle}>📱 {t('registration.phoneVerification')}</Text>
           
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Mobile Number</Text>
+            <Text style={styles.label}>{t('registration.mobileNumber')}</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter 10-digit mobile number"
+              placeholder={t('registration.placeholders.enterPhone')}
               value={formData.phoneNumber}
               onChangeText={(text) => updateFormData('phoneNumber', text)}
               keyboardType="phone-pad"
@@ -118,16 +136,16 @@ const Registration = () => {
               disabled={isLoading}
             >
               <Text style={styles.primaryButtonText}>
-                {isLoading ? 'Sending...' : 'Send OTP'}
+                {isLoading ? t('registration.sending') : t('registration.sendOtp')}
               </Text>
             </TouchableOpacity>
           ) : !otpVerified ? (
             <>
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Enter OTP</Text>
+                <Text style={styles.label}>{t('registration.enterOtp')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter 6-digit OTP"
+                  placeholder={t('registration.placeholders.enterOtp')}
                   value={formData.otp}
                   onChangeText={(text) => updateFormData('otp', text)}
                   keyboardType="number-pad"
@@ -138,12 +156,12 @@ const Registration = () => {
                 style={styles.primaryButton}
                 onPress={handleVerifyOTP}
               >
-                <Text style={styles.primaryButtonText}>Verify OTP</Text>
+                <Text style={styles.primaryButtonText}>{t('registration.verifyOtp')}</Text>
               </TouchableOpacity>
             </>
           ) : (
             <View style={styles.successContainer}>
-              <Text style={styles.successText}>✅ Phone verified successfully!</Text>
+              <Text style={styles.successText}>✅ {t('registration.phoneVerifiedSuccess')}</Text>
             </View>
           )}
         </View>
@@ -151,55 +169,55 @@ const Registration = () => {
         {/* Personal Information */}
         {otpVerified && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>👤 Personal Information</Text>
+            <Text style={styles.sectionTitle}>👤 {t('registration.personalInformation')}</Text>
             
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Full Name</Text>
+              <Text style={styles.label}>{t('registration.fullName')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter your full name"
+                placeholder={t('registration.placeholders.enterName')}
                 value={formData.name}
                 onChangeText={(text) => updateFormData('name', text)}
               />
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Village</Text>
+              <Text style={styles.label}>{t('registration.village')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter your village name"
+                placeholder={t('registration.placeholders.enterVillage')}
                 value={formData.village}
                 onChangeText={(text) => updateFormData('village', text)}
               />
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>District</Text>
+              <Text style={styles.label}>{t('registration.district')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter your district"
+                placeholder={t('registration.placeholders.enterDistrict')}
                 value={formData.district}
                 onChangeText={(text) => updateFormData('district', text)}
               />
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Primary Crop</Text>
+              <Text style={styles.label}>{t('registration.primaryCrop')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cropSelection}>
-                {crops.map((crop) => (
+                {getCrops().map((crop) => (
                   <TouchableOpacity
-                    key={crop}
+                    key={crop.id}
                     style={[
                       styles.cropButton,
-                      formData.primaryCrop === crop && styles.selectedCrop
+                      formData.primaryCrop === crop.name && styles.selectedCrop
                     ]}
-                    onPress={() => updateFormData('primaryCrop', crop)}
+                    onPress={() => updateFormData('primaryCrop', crop.name)}
                   >
                     <Text style={[
                       styles.cropButtonText,
-                      formData.primaryCrop === crop && styles.selectedCropText
+                      formData.primaryCrop === crop.name && styles.selectedCropText
                     ]}>
-                      {crop}
+                      {crop.name}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -210,7 +228,7 @@ const Registration = () => {
               style={styles.primaryButton}
               onPress={handleRegistration}
             >
-              <Text style={styles.primaryButtonText}>Complete Registration</Text>
+              <Text style={styles.primaryButtonText}>{t('registration.completeRegistration')}</Text>
             </TouchableOpacity>
           </View>
         )}

@@ -51,10 +51,11 @@
     "edit": "Edit",
     "add": "Add",
     "retry": "Retry",
-    "close": "Close"
+    "close": "Close",
+    "continue": "Continue"
   },
   "onboarding": {
-    "welcome": "Welcome to GramSetu",
+    "welcome": "Welcome to the Future of Farming",
     "chooseLanguage": "Choose Your Language",
     "languageInstruction": "भाषा चुनें / Choose Language",
     "selectLanguageToContinue": "Select your preferred language to continue",
@@ -63,7 +64,17 @@
     "skip": "Skip",
     "finish": "Finish",
     "tapToContinue": "Tap or swipe left to continue",
-    "swipeToExplore": "Swipe to explore features"
+    "swipeToExplore": "Swipe to explore features",
+    "tagline": "Your Smart Farming Companion",
+    "transformAgriculture": "Transform Your Agriculture",
+    "description": "Smart solutions for modern farmers. Get AI-powered insights, real-time weather updates, market prices, and government scheme access.",
+    "joinFarmers": "Join thousands of farmers already using GramSetu",
+    "features": {
+      "aiAssistant": "AI Assistant",
+      "weatherInsights": "Weather Insights",
+      "marketPrices": "Market Prices",
+      "govtSchemes": "Govt. Schemes"
+    }
   },
   "weather": {
     "temperature": "Temperature",
@@ -80,5 +91,62 @@
     "sellProduce": "Sell Produce",
     "buyRequests": "Buy Requests",
     "todayPrices": "Today's Market Prices"
+  },
+  "registration": {
+    "createAccount": "Create Account",
+    "joinFarmers": "Join thousands of farmers using GramSetu",
+    "phoneVerification": "Phone Verification",
+    "mobileNumber": "Mobile Number",
+    "enterOtp": "Enter OTP",
+    "sendOtp": "Send OTP",
+    "verifyOtp": "Verify OTP",
+    "sending": "Sending...",
+    "otpSent": "OTP Sent",
+    "otpSentMessage": "OTP sent to",
+    "demoOtp": "Use 123456 for demo.",
+    "phoneVerified": "Phone number verified successfully!",
+    "phoneVerifiedSuccess": "Phone verified successfully!",
+    "personalInformation": "Personal Information",
+    "fullName": "Full Name",
+    "village": "Village",
+    "district": "District",
+    "primaryCrop": "Primary Crop",
+    "completeRegistration": "Complete Registration",
+    "welcome": "Welcome!",
+    "registrationComplete": "Registration completed successfully!",
+    "placeholders": {
+      "enterPhone": "Enter 10-digit mobile number",
+      "enterOtp": "Enter 6-digit OTP",
+      "enterName": "Enter your full name",
+      "enterVillage": "Enter your village name",
+      "enterDistrict": "Enter your district"
+    },
+    "errors": {
+      "invalidPhone": "Please enter a valid 10-digit phone number",
+      "invalidOtp": "Invalid OTP. Use 123456 for demo.",
+      "fillAllFields": "Please fill all fields",
+      "registrationFailed": "Registration failed. Please try again."
+    },
+    "crops": {
+      "rice": "Rice",
+      "wheat": "Wheat",
+      "sugarcane": "Sugarcane",
+      "cotton": "Cotton",
+      "maize": "Maize",
+      "bajra": "Bajra",
+      "jowar": "Jowar",
+      "barley": "Barley",
+      "gram": "Gram",
+      "tur": "Tur",
+      "mustard": "Mustard",
+      "groundnut": "Groundnut",
+      "soybean": "Soybean",
+      "sunflower": "Sunflower",
+      "tomato": "Tomato",
+      "onion": "Onion",
+      "potato": "Potato",
+      "chili": "Chili",
+      "other": "Other"
+    }
   }
 }

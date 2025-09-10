@@ -51,15 +51,28 @@
     "edit": "সম্পাদনা",
     "add": "যোগ করুন",
     "retry": "আবার চেষ্টা করুন",
-    "close": "বন্ধ করুন"
+    "close": "বন্ধ করুন",
+    "continue": "চালিয়ে যান"
   },
   "onboarding": {
-    "welcome": "গ্রামসেতুতে আপনাকে স্বাগতম",
+    "welcome": "কৃষির ভবিষ্যতে আপনাকে স্বাগতম",
     "chooseLanguage": "আপনার ভাষা বেছে নিন",
+    "languageInstruction": "ভাষা নির্বাচন করুন / Choose Language",
+    "selectLanguageToContinue": "এগিয়ে যেতে আপনার পছন্দের ভাষা নির্বাচন করুন",
     "getStarted": "শুরু করুন",
     "next": "পরবর্তী",
     "skip": "এড়িয়ে যান",
-    "finish": "সমাপ্ত"
+    "finish": "সমাপ্ত",
+    "tagline": "আপনার স্মার্ট কৃষি সহচর",
+    "transformAgriculture": "আপনার কৃষিকে রূপান্তরিত করুন",
+    "description": "আধুনিক কৃষকদের জন্য স্মার্ট সমাধান। AI-চালিত অন্তর্দৃষ্টি, রিয়েল-টাইম আবহাওয়া আপডেট, বাজার দর এবং সরকারি প্রকল্পের অ্যাক্সেস পান।",
+    "joinFarmers": "ইতিমধ্যে গ্রামসেতু ব্যবহার করছেন এমন হাজারো কৃষকের সাথে যোগ দিন",
+    "features": {
+      "aiAssistant": "AI সহায়ক",
+      "weatherInsights": "আবহাওয়া তথ্য",
+      "marketPrices": "বাজার দর",
+      "govtSchemes": "সরকারি প্রকল্প"
+    }
   },
   "weather": {
     "temperature": "তাপমাত্রা",
@@ -75,5 +88,47 @@
     "myListings": "আমার তালিকা",
     "sellProduce": "উৎপাদন বিক্রি করুন",
     "buyRequests": "কেনার অনুরোধ"
+  },
+  "registration": {
+    "createAccount": "অ্যাকাউন্ট তৈরি করুন",
+    "joinFarmers": "ইতিমধ্যে গ্রামসেতু ব্যবহার করছেন এমন হাজারো কৃষকের সাথে যোগ দিন",
+    "phoneVerification": "ফোন যাচাইকরণ",
+    "mobileNumber": "মোবাইল নম্বর",
+    "enterOtp": "OTP লিখুন",
+    "sendOtp": "OTP পাঠান",
+    "verifyOtp": "OTP যাচাই করুন",
+    "sending": "পাঠানো হচ্ছে...",
+    "otpSent": "OTP পাঠানো হয়েছে",
+    "otpSentMessage": "OTP পাঠানো হয়েছে",
+    "demoOtp": "ডেমোর জন্য 123456 ব্যবহার করুন।",
+    "phoneVerified": "ফোন নম্বর সফলভাবে যাচাই করা হয়েছে!",
+    "phoneVerifiedSuccess": "ফোন সফলভাবে যাচাই করা হয়েছে!",
+    "personalInformation": "ব্যক্তিগত তথ্য",
+    "fullName": "পূর্ণ নাম",
+    "village": "গ্রাম",
+    "district": "জেলা",
+    "primaryCrop": "প্রধান ফসল",
+    "completeRegistration": "নিবন্ধন সম্পূর্ণ করুন",
+    "welcome": "স্বাগতম!",
+    "registrationComplete": "নিবন্ধন সফলভাবে সম্পূর্ণ হয়েছে!",
+    "placeholders": {
+      "enterPhone": "10 ডিজিটের মোবাইল নম্বর লিখুন",
+      "enterOtp": "6 ডিজিটের OTP লিখুন",
+      "enterName": "আপনার পূর্ণ নাম লিখুন",
+      "enterVillage": "আপনার গ্রামের নাম লিখুন",
+      "enterDistrict": "আপনার জেলা লিখুন"
+    },
+    "errors": {
+      "invalidPhone": "দয়া করে একটি বৈধ 10 ডিজিটের ফোন নম্বর লিখুন",
+      "invalidOtp": "ভুল OTP। ডেমোর জন্য 123456 ব্যবহার করুন।",
+      "fillAllFields": "দয়া করে সব ক্ষেত্র পূরণ করুন",
+      "registrationFailed": "নিবন্ধন ব্যর্থ হয়েছে। দয়া করে আবার চেষ্টা করুন।"
+    },
+    "crops": {
+      "rice": "ধান", "wheat": "গম", "sugarcane": "আখ", "cotton": "তুলা", "maize": "ভুট্টা",
+      "bajra": "বাজরা", "jowar": "জোয়ার", "barley": "যব", "gram": "ছোলা", "tur": "অড়হর",
+      "mustard": "সরিষা", "groundnut": "বাদাম", "soybean": "সয়াবিন", "sunflower": "সূর্যমুখী",
+      "tomato": "টমেটো", "onion": "পেঁয়াজ", "potato": "আলু", "chili": "মরিচ", "other": "অন্যান্য"
+    }
   }
 }

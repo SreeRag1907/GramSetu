@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useI18n } from '../../i18n/useI18n';
@@ -10,17 +10,18 @@ const LanguageSelection = () => {
   const [selectedLanguage, setSelectedLanguage] = useState('');
 
   useEffect(() => {
-    checkExistingUser();
+    // Initialize with default language if none selected
+    initializeLanguage();
   }, []);
 
-  const checkExistingUser = async () => {
+  const initializeLanguage = async () => {
     try {
-      const isOnboarded = await AsyncStorage.getItem('isOnboarded');
-      if (isOnboarded === 'true') {
-        router.replace('/');
+      const savedLanguage = await AsyncStorage.getItem('selectedLanguage');
+      if (savedLanguage) {
+        setSelectedLanguage(savedLanguage);
       }
     } catch (error) {
-      console.error('Error checking user status:', error);
+      console.error('Error loading language:', error);
     }
   };
 
@@ -30,8 +31,8 @@ const LanguageSelection = () => {
       await AsyncStorage.setItem('selectedLanguage', languageCode);
       setSelectedLanguage(languageCode);
       
-      // Navigate to registration
-      router.push('/onboarding/registration');
+      // Navigate to get-started screen with selected language
+      router.push('/get-started');
     } catch (error) {
       Alert.alert(t('common.error'), t('errors.generic'));
     }
@@ -40,7 +41,16 @@ const LanguageSelection = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.appIcon}>🌾</Text>
+        <View style={styles.logoContainer}>
+          <Image
+            source={{ uri: 'https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=400&q=80' }}
+            style={styles.logoImage}
+            resizeMode="cover"
+          />
+          <View style={styles.logoOverlay}>
+            <Text style={styles.logoIcon}>�</Text>
+          </View>
+        </View>
         <Text style={styles.appName}>GramSetu</Text>
         <Text style={styles.tagline}>Your Farming Companion</Text>
       </View>
@@ -86,9 +96,35 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 30,
   },
-  appIcon: {
-    fontSize: 64,
-    marginBottom: 10,
+  logoContainer: {
+    position: 'relative',
+    marginBottom: 20,
+  },
+  logoImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  logoOverlay: {
+    position: 'absolute',
+    bottom: -5,
+    right: -5,
+    width: 40,
+    height: 40,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  logoIcon: {
+    fontSize: 24,
   },
   appName: {
     fontSize: 36,

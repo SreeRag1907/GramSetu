@@ -51,15 +51,28 @@
     "edit": "સંપાદિત કરો",
     "add": "ઉમેરો",
     "retry": "ફરી પ્રયાસ કરો",
-    "close": "બંધ કરો"
+    "close": "બંધ કરો",
+    "continue": "આગળ વધો"
   },
   "onboarding": {
-    "welcome": "ગ્રામસેતુમાં તમારું સ્વાગત છે",
+    "welcome": "ખેતીના ભવિષ્યમાં તમારું સ્વાગત છે",
     "chooseLanguage": "તમારી ભાષા પસંદ કરો",
+    "languageInstruction": "ભાષા પસંદ કરો / Choose Language",
+    "selectLanguageToContinue": "આગળ વધવા માટે તમારી પસંદીદા ભાષા પસંદ કરો",
     "getStarted": "શરૂ કરો",
     "next": "આગળ",
     "skip": "છોડો",
-    "finish": "સમાપ્ત"
+    "finish": "સમાપ્ત",
+    "tagline": "તમારો સ્માર્ટ ખેતી સાથી",
+    "transformAgriculture": "તમારી કૃષિને પરિવર્તિત કરો",
+    "description": "આધુનિક ખેડૂતો માટે સ્માર્ટ સોલ્યુશન્સ. AI-સંચાલિત અંતર્દૃષ્ટિ, રિયલ-ટાઇમ હવામાન અપડેટ્સ, બજાર કિંમતો અને સરકારી યોજના પ્રવેશ મેળવો.",
+    "joinFarmers": "ગ્રામસેતુનો ઉપયોગ કરતા હજારો ખેડૂતો સાથે જોડાઓ",
+    "features": {
+      "aiAssistant": "AI સહાયક",
+      "weatherInsights": "હવામાન માહિતી",
+      "marketPrices": "બજાર ભાવ",
+      "govtSchemes": "સરકારી યોજનાઓ"
+    }
   },
   "weather": {
     "temperature": "તાપમાન",
@@ -75,5 +88,47 @@
     "myListings": "મારી યાદીઓ",
     "sellProduce": "ઉત્પાદન વેચો",
     "buyRequests": "ખરીદીની વિનંતીઓ"
+  },
+  "registration": {
+    "createAccount": "ખાતું બનાવો",
+    "joinFarmers": "ગ્રામસેતુનો ઉપયોગ કરતા હજારો ખેડૂતો સાથે જોડાઓ",
+    "phoneVerification": "ફોન ચકાસણી",
+    "mobileNumber": "મોબાઇલ નંબર",
+    "enterOtp": "OTP દાખલ કરો",
+    "sendOtp": "OTP મોકલો",
+    "verifyOtp": "OTP ચકાસો",
+    "sending": "મોકલાઈ રહ્યું છે...",
+    "otpSent": "OTP મોકલાયું",
+    "otpSentMessage": "OTP મોકલાયું",
+    "demoOtp": "ડેમો માટે 123456 નો ઉપયોગ કરો.",
+    "phoneVerified": "ફોન નંબર સફળતાપૂર્વક ચકાસાયું!",
+    "phoneVerifiedSuccess": "ફોન સફળતાપૂર્વક ચકાસાયું!",
+    "personalInformation": "વ્યક્તિગત માહિતી",
+    "fullName": "પૂરું નામ",
+    "village": "ગામ",
+    "district": "જિલ્લો",
+    "primaryCrop": "મુખ્ય પાક",
+    "completeRegistration": "નોંધણી પૂર્ણ કરો",
+    "welcome": "સ્વાગત છે!",
+    "registrationComplete": "નોંધણી સફળતાપૂર્વક પૂર્ણ થઈ!",
+    "placeholders": {
+      "enterPhone": "10 અંકનો મોબાઇલ નંબર દાખલ કરો",
+      "enterOtp": "6 અંકનો OTP દાખલ કરો",
+      "enterName": "તમારું પૂરું નામ દાખલ કરો",
+      "enterVillage": "તમારા ગામનું નામ દાખલ કરો",
+      "enterDistrict": "તમારો જિલ્લો દાખલ કરો"
+    },
+    "errors": {
+      "invalidPhone": "કૃપા કરીને માન્ય 10 અંકનો ફોન નંબર દાખલ કરો",
+      "invalidOtp": "અમાન્ય OTP. ડેમો માટે 123456 નો ઉપયોગ કરો.",
+      "fillAllFields": "કૃપા કરીને બધા ક્ષેત્રો ભરો",
+      "registrationFailed": "નોંધણી નિષ્ફળ. કૃપા કરીને ફરી પ્રયાસ કરો."
+    },
+    "crops": {
+      "rice": "ચોખા", "wheat": "ઘઉં", "sugarcane": "શેરડી", "cotton": "કપાસ", "maize": "મકાઈ",
+      "bajra": "બાજરી", "jowar": "જુવાર", "barley": "જવ", "gram": "ચણા", "tur": "તુવેર",
+      "mustard": "રાઈ", "groundnut": "મગફળી", "soybean": "સોયાબીન", "sunflower": "સૂર્યમુખી",
+      "tomato": "ટમેટા", "onion": "કાંદા", "potato": "બટાકા", "chili": "મરચું", "other": "અન્ય"
+    }
   }
 }

@@ -17,7 +17,7 @@ const GetStartedScreen = () => {
   const { t } = useI18n();
 
   const handleGetStarted = () => {
-    router.push('/onboarding/registration');
+    router.push('/onboarding/language');
   };
 
   return (
@@ -41,35 +41,36 @@ const GetStartedScreen = () => {
                 <Text style={styles.leafIcon}>🌱</Text>
               </View>
               <Text style={styles.appTitle}>GramSetu</Text>
-              <Text style={styles.tagline}>{t('onboarding.tagline')}</Text>
+              <Text style={styles.tagline}>Your Smart Farming Companion</Text>
             </View>
           </View>
 
           {/* Main Content */}
           <View style={styles.contentSection}>
             <View style={styles.featureCard}>
-              <Text style={styles.welcomeText}>{t('onboarding.welcome')}</Text>
-              <Text style={styles.mainTitle}>{t('onboarding.transformAgriculture')}</Text>
+              <Text style={styles.welcomeText}>Welcome to the Future of Farming</Text>
+              <Text style={styles.mainTitle}>Transform Your Agriculture</Text>
               <Text style={styles.subtitle}>
-                {t('onboarding.description')}
+                Smart solutions for modern farmers. Get AI-powered insights, 
+                real-time weather updates, market prices, and government scheme access.
               </Text>
               
               <View style={styles.featuresContainer}>
                 <View style={styles.featureItem}>
                   <Text style={styles.featureIcon}>🤖</Text>
-                  <Text style={styles.featureText}>{t('onboarding.features.aiAssistant')}</Text>
+                  <Text style={styles.featureText}>AI Assistant</Text>
                 </View>
                 <View style={styles.featureItem}>
                   <Text style={styles.featureIcon}>🌤️</Text>
-                  <Text style={styles.featureText}>{t('onboarding.features.weatherInsights')}</Text>
+                  <Text style={styles.featureText}>Weather Insights</Text>
                 </View>
                 <View style={styles.featureItem}>
                   <Text style={styles.featureIcon}>💰</Text>
-                  <Text style={styles.featureText}>{t('onboarding.features.marketPrices')}</Text>
+                  <Text style={styles.featureText}>Market Prices</Text>
                 </View>
                 <View style={styles.featureItem}>
                   <Text style={styles.featureIcon}>🏛️</Text>
-                  <Text style={styles.featureText}>{t('onboarding.features.govtSchemes')}</Text>
+                  <Text style={styles.featureText}>Govt. Schemes</Text>
                 </View>
               </View>
             </View>
@@ -87,7 +88,7 @@ const GetStartedScreen = () => {
             </TouchableOpacity>
             
             <Text style={styles.footerText}>
-              {t('onboarding.joinFarmers')}
+              Join thousands of farmers already using GramSetu
             </Text>
           </View>
         </View>

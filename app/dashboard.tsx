@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, ActivityIndicator, Modal, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView, ActivityIndicator, Modal, Alert, ImageBackground } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useI18n } from '../i18n/useI18n';
@@ -168,28 +168,35 @@ const Dashboard = () => {
     <View style={styles.container}>
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header Section */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.greeting}>{getGreeting(currentTime)}</Text>
-            <Text style={styles.userName}>{userName || t('dashboard.farmer')}</Text>
-            <Text style={styles.date}>{formatDate(currentTime)}</Text>
+      <ImageBackground
+        source={{ uri: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200&q=80' }}
+        style={styles.header}
+        resizeMode="cover"
+      >
+        <View style={styles.headerOverlay} />
+        <View style={styles.headerContent}>
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.greeting}>{getGreeting(currentTime)}</Text>
+              <Text style={styles.userName}>{userName || t('dashboard.farmer')}</Text>
+              <Text style={styles.date}>{formatDate(currentTime)}</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.profileButton} 
+              onPress={() => setShowProfileMenu(true)}
+            >
+              <Text style={styles.profileIcon}>👤</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity 
-            style={styles.profileButton} 
-            onPress={() => setShowProfileMenu(true)}
-          >
-            <Text style={styles.profileIcon}>👤</Text>
+
+          {/* Search Bar */}
+          <TouchableOpacity style={styles.searchBar} onPress={() => router.push('/chatbot')}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <Text style={styles.searchText}>{t('dashboard.searchPlaceholder')}</Text>
+            <Text style={styles.micIcon}>🎤</Text>
           </TouchableOpacity>
         </View>
-
-        {/* Search Bar */}
-        <TouchableOpacity style={styles.searchBar} onPress={() => router.push('/chatbot')}>
-          <Text style={styles.searchIcon}>🔍</Text>
-          <Text style={styles.searchText}>{t('dashboard.searchPlaceholder')}</Text>
-          <Text style={styles.micIcon}>🎤</Text>
-        </TouchableOpacity>
-      </View>
+      </ImageBackground>
 
       {/* Weather Widget */}
       <View style={styles.weatherWidget}>
@@ -375,12 +382,19 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   header: {
-    backgroundColor: '#4CAF50',
     paddingTop: 50,
-    paddingBottom: 25,
-    paddingHorizontal: 20,
+    paddingBottom: 55,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
+    overflow: 'hidden',
+  },
+  headerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(76, 175, 80, 0.35)',
+  },
+  headerContent: {
+    paddingHorizontal: 20,
+    zIndex: 1,
   },
   headerTop: {
     flexDirection: 'row',
@@ -389,39 +403,61 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   greeting: {
-    fontSize: 16,
-    color: '#E8F5E8',
+    fontSize: 20,
+    color: 'white',
     marginBottom: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.7)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   userName: {
     fontSize: 24,
     fontWeight: '700',
     color: 'white',
     marginBottom: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
   },
   date: {
     fontSize: 14,
-    color: '#C8E6C9',
+    color: 'white',
+    textShadowColor: 'rgba(0, 0, 0, 0.7)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   profileButton: {
     width: 40,
     height: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   profileIcon: {
     fontSize: 20,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 15,
     paddingHorizontal: 15,
     paddingVertical: 12,
-    marginTop: 5,
+    marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   searchIcon: {
     fontSize: 16,
@@ -438,7 +474,7 @@ const styles = StyleSheet.create({
   weatherWidget: {
     backgroundColor: 'white',
     marginHorizontal: 20,
-    marginTop: -15,
+    marginTop: -40,
     borderRadius: 20,
     padding: 20,
     flexDirection: 'row',

@@ -36,11 +36,12 @@ const SplashScreen = () => {
         if (isOnboarded === 'true') {
           router.replace('/dashboard');
         } else {
-          router.replace('/get-started');
+          // New flow: always go to language selection first
+          router.replace('/onboarding/language');
         }
       } catch (error) {
         console.error('Error checking onboarding status:', error);
-        router.replace('/get-started');
+        router.replace('/onboarding/language');
       }
     }, 2500);
 
