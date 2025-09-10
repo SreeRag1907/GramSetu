@@ -13,6 +13,7 @@ import {
   WeatherData,
 } from '../data/dashboard-data';
 import { languages } from '../data/onboarding-data';
+import { weatherService } from '../services/weatherService';
 
 const Dashboard = () => {
   const { t, currentLanguage, changeLanguage } = useI18n();
@@ -83,6 +84,7 @@ const Dashboard = () => {
   useEffect(() => {
     loadUserData();
     checkOnboardingStatus();
+    loadWeatherData();
     
     // Update time every minute
     const timeInterval = setInterval(() => {
@@ -121,6 +123,23 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error('Error loading user data:', error);
+    }
+  };
+
+  const loadWeatherData = async () => {
+    try {
+      const currentWeather = await weatherService.getCurrentWeather();
+      if (currentWeather) {
+        setWeatherData({
+          temperature: currentWeather.temperature,
+          humidity: currentWeather.humidity,
+          condition: currentWeather.condition,
+          location: currentWeather.location
+        });
+      }
+    } catch (error) {
+      console.error('Error loading weather data:', error);
+      // Keep default weather data if API fails
     }
   };
 
@@ -218,10 +237,10 @@ const Dashboard = () => {
           </View>
         </View>
         <View style={styles.weatherRight}>
-          <Text style={styles.weatherIcon}>⛅</Text>
+          <Text style={styles.weatherIcon}>🌤️</Text>
           <View style={styles.weatherDetails}>
-            <Text style={styles.weatherDetail}>Humidity {weatherData.humidity}%</Text>
-            <Text style={styles.weatherDetail}>Good day for farming</Text>
+            <Text style={styles.weatherDetail}>{t('dashboard.humidity')} {weatherData.humidity}%</Text>
+            <Text style={styles.weatherDetail}>{t('dashboard.goodDayFarming')}</Text>
           </View>
         </View>
       </View>

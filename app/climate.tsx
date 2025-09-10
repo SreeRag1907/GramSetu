@@ -23,43 +23,79 @@ import {
   getPriorityColor,
   getWeatherConditionIcon,
 } from '../data/climate-data';
+import { 
+  weatherService, 
+  ProcessedWeatherData, 
+  ProcessedForecastDay 
+} from '../services/weatherService';
 
 
 
 const ClimateAnalysis = () => {
   const { t } = useI18n();
-  const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null);
-  const [forecast, setForecast] = useState<ForecastDay[]>([]);
+  const [currentWeather, setCurrentWeather] = useState<ProcessedWeatherData | null>(null);
+  const [forecast, setForecast] = useState<ProcessedForecastDay[]>([]);
   const [advisories, setAdvisories] = useState<Advisory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [locationName, setLocationName] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'current' | 'forecast' | 'advisories' | 'historical'>('current');
 
   useEffect(() => {
     loadWeatherData();
   }, []);
 
-  const loadWeatherData = async () => {
+  const loadWeatherData = async (isRefresh = false) => {
     try {
-      setLoading(true);
-      
-      // Get location
-      const { status } = await Location.getForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const location = await Location.getCurrentPositionAsync({});
-        const [address] = await Location.reverseGeocodeAsync(location.coords);
-        setLocationName(`${address.city || address.district || 'Unknown'}, ${address.region || ''}`);
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      setError(null);
+
+      // Try to load real weather data from API
+      const [weatherData, forecastData] = await Promise.all([
+        weatherService.getCurrentWeather(),
+        weatherService.getForecast()
+      ]);
+
+      if (weatherData) {
+        setCurrentWeather(weatherData);
+      } else {
+        // Fallback to mock data if API fails
+        setCurrentWeather({
+          ...mockCurrentWeather,
+          location: 'Your Location'
+        } as ProcessedWeatherData);
+        setError('Using offline data. Check internet connection for live updates.');
       }
 
-      // Load mock weather data from data file
-      setCurrentWeather(mockCurrentWeather);
-      setForecast(mockForecast);
+      if (forecastData) {
+        setForecast(forecastData);
+      } else {
+        // Fallback to mock forecast
+        setForecast(mockForecast as ProcessedForecastDay[]);
+      }
+
+      // Always load advisories from mock data (could be enhanced with AI-generated advisories based on weather)
       setAdvisories(mockAdvisories);
-      setLoading(false);
+
     } catch (error) {
       console.error('Error loading weather data:', error);
-      Alert.alert('Error', 'Failed to load weather data');
+      
+      // Use mock data as fallback
+      setCurrentWeather({
+        ...mockCurrentWeather,
+        location: 'Your Location'
+      } as ProcessedWeatherData);
+      setForecast(mockForecast as ProcessedForecastDay[]);
+      setAdvisories(mockAdvisories);
+      
+      setError('Failed to load live weather data. Showing sample data.');
+    } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -67,13 +103,19 @@ const ClimateAnalysis = () => {
 
   const renderCurrentWeather = () => (
     <View style={styles.tabContent}>
+      {error && (
+        <View style={styles.errorCard}>
+          <Text style={styles.errorIcon}>⚠️</Text>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
       {currentWeather && (
         <>
           <View style={styles.currentWeatherCard}>
             <View style={styles.weatherHeader}>
-              <Text style={styles.locationText}>📍 {locationName || 'Your Location'}</Text>
-              <TouchableOpacity onPress={loadWeatherData}>
-                <Text style={styles.refreshIcon}>🔄</Text>
+              <Text style={styles.locationText}>📍 {currentWeather.location || 'Your Location'}</Text>
+              <TouchableOpacity onPress={() => loadWeatherData(true)} disabled={refreshing}>
+                <Text style={[styles.refreshIcon, refreshing && styles.refreshing]}>🔄</Text>
               </TouchableOpacity>
             </View>
             
@@ -96,6 +138,20 @@ const ClimateAnalysis = () => {
                 <Text style={styles.detailLabel}>Wind Speed</Text>
                 <Text style={styles.detailValue}>{currentWeather.windSpeed} km/h</Text>
               </View>
+              {currentWeather.pressure && (
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailIcon}>📊</Text>
+                  <Text style={styles.detailLabel}>Pressure</Text>
+                  <Text style={styles.detailValue}>{currentWeather.pressure} hPa</Text>
+                </View>
+              )}
+              {currentWeather.visibility && (
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailIcon}>👁️</Text>
+                  <Text style={styles.detailLabel}>Visibility</Text>
+                  <Text style={styles.detailValue}>{currentWeather.visibility} km</Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -387,10 +443,13 @@ const styles = StyleSheet.create({
   },
   weatherDetails: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-around',
   },
   detailItem: {
     alignItems: 'center',
+    minWidth: '25%',
+    marginBottom: 10,
   },
   detailIcon: {
     fontSize: 24,
@@ -583,6 +642,29 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#4CAF50',
     fontWeight: '600',
+  },
+  errorCard: {
+    backgroundColor: '#FFE5E5',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderLeftWidth: 4,
+    borderLeftColor: '#F44336',
+  },
+  errorIcon: {
+    fontSize: 20,
+    marginRight: 10,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#D32F2F',
+    lineHeight: 20,
+  },
+  refreshing: {
+    opacity: 0.5,
   },
 });
 
