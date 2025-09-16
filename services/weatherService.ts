@@ -1,7 +1,8 @@
 // OpenWeatherMap API Service
 import * as Location from 'expo-location';
 
-const API_KEY = 'c7d9564708bb2981d5281d94e87b04f0';
+const API_KEY = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
+
 const BASE_URL = 'https://api.openweathermap.org/data/2.5';
 
 export interface WeatherResponse {
