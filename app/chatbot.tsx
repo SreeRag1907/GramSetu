@@ -21,33 +21,136 @@ import {
   getWelcomeMessage,
   getAIResponse,
 } from '../data/chatbot-data';
+import { geminiAI, ChatContext } from '../services/geminiAI';
+import { PromptContextBuilder, quickResponseTemplates } from '../data/ai-prompts';
+import { defaultWeatherData } from '../data/dashboard-data';
+import { dataIntegration } from '../services/dataIntegration';
+
+// Define the interface locally to avoid import issues
+interface IntegratedFarmData {
+  userProfile: {
+    name: string;
+    location: string;
+    farmSize: number;
+    primaryCrops: string[];
+    farmingType: 'organic' | 'conventional' | 'mixed';
+    experience: number;
+    language: string;
+  };
+  currentCrops: {
+    cropName: string;
+    variety: string;
+    area: number;
+    sowingDate: Date;
+    currentStage: 'sowing' | 'vegetative' | 'flowering' | 'fruiting' | 'harvesting';
+    expectedHarvest: Date;
+    issues?: string[];
+  }[];
+  weatherData: {
+    current: {
+      temperature: number;
+      humidity: number;
+      condition: string;
+      location: string;
+    };
+    forecast?: any;
+  };
+  marketData: {
+    [cropName: string]: {
+      currentPrice: number;
+      trend: 'up' | 'down' | 'stable';
+      demandLevel: 'high' | 'medium' | 'low';
+      lastUpdated: Date;
+    };
+  };
+  schemes: {
+    eligible: any[];
+    applied: any[];
+    recommended: any[];
+  };
+  laborData: {
+    availableWorkers: number;
+    dailyWage: number;
+    currentTasks: string[];
+    upcomingNeeds: string[];
+  };
+  farmActivities: {
+    recent: any[];
+    planned: any[];
+  };
+}
 
 const Chatbot = () => {
-  const { t } = useI18n();
+  const { t, currentLanguage } = useI18n();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [userName, setUserName] = useState('');
+  const [userProfile, setUserProfile] = useState<any>({});
+  const [weatherData, setWeatherData] = useState<any>(defaultWeatherData);
+  const [farmData, setFarmData] = useState<IntegratedFarmData | null>(null);
+  const [conversationHistory, setConversationHistory] = useState<Array<{ role: 'user' | 'assistant', content: string }>>([]);
+  const [aiEnabled, setAiEnabled] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
 
 
 
   useEffect(() => {
-    loadUserData();
+    loadFarmData();
+    testAIConnection();
     initializeChat();
   }, []);
 
-  const loadUserData = async () => {
+  const loadFarmData = async () => {
     try {
-      const name = await AsyncStorage.getItem('userName');
-      if (name) setUserName(name);
+      const integrated = await dataIntegration.loadFarmData();
+      setFarmData(integrated);
+      setUserName(integrated.userProfile.name);
+      setUserProfile(integrated.userProfile);
+      setWeatherData(integrated.weatherData.current);
     } catch (error) {
-      console.error('Error loading user data:', error);
+      console.error('Error loading farm data:', error);
+    }
+  };
+
+  const testAIConnection = async () => {
+    try {
+      const isConnected = await geminiAI.testConnection();
+      setAiEnabled(isConnected);
+      
+      if (!isConnected) {
+        console.warn('Gemini AI not available, using fallback responses');
+      }
+    } catch (error) {
+      console.error('AI connection test failed:', error);
+      setAiEnabled(false);
     }
   };
 
   const initializeChat = () => {
-    const welcomeMessage = getWelcomeMessage(userName);
+    const language = currentLanguage || 'en';
+    let welcomeText = quickResponseTemplates.greeting[language as keyof typeof quickResponseTemplates.greeting] || 
+                     quickResponseTemplates.greeting.en;
+    
+    // Add personalized context if farm data is available
+    if (farmData) {
+      const analysis = dataIntegration.analyzeFarmStatus(farmData);
+      if (analysis.urgentIssues.length > 0) {
+        welcomeText += `\n\n⚠️ Urgent: ${analysis.urgentIssues[0]}`;
+      }
+      if (analysis.opportunities.length > 0) {
+        welcomeText += `\n\n💡 Opportunity: ${analysis.opportunities[0]}`;
+      }
+    }
+    
+    const welcomeMessage: ChatMessage = {
+      id: '1',
+      text: welcomeText,
+      isUser: false,
+      timestamp: new Date(),
+      category: 'Welcome',
+    };
+    
     setMessages([welcomeMessage]);
   };
 
@@ -70,20 +173,126 @@ const Chatbot = () => {
     setInputText('');
     setIsTyping(true);
 
-    // Simulate AI thinking time
-    setTimeout(() => {
-      const aiResponse = getAIResponse(textToSend);
+    // Update conversation history
+    setConversationHistory(prev => [...prev, { role: 'user', content: textToSend }]);
+
+    try {
+      let aiResponseText = '';
+
+      if (aiEnabled && farmData) {
+        // Build comprehensive context for AI
+        const marketDataFormatted = Object.entries(farmData.marketData).reduce((acc, [crop, data]: [string, any]) => {
+          acc[crop] = {
+            price: data.currentPrice,
+            trend: data.trend
+          };
+          return acc;
+        }, {} as { [crop: string]: { price: number; trend: 'up' | 'down' | 'stable' } });
+
+        const context: ChatContext = {
+          userProfile: {
+            name: farmData.userProfile.name,
+            location: farmData.userProfile.location,
+            language: farmData.userProfile.language,
+            farmSize: farmData.userProfile.farmSize,
+            primaryCrops: farmData.userProfile.primaryCrops,
+          },
+          weatherData: farmData.weatherData.current,
+          marketData: marketDataFormatted,
+          currentSeason: getCurrentSeason(),
+        };
+
+        // Enhanced prompt with farm context
+        const contextSummary = dataIntegration.generateContextSummary(farmData);
+        const enhancedQuery = `${contextSummary}\n\nFarmer's question: ${textToSend}`;
+
+        // Get AI response with full context
+        const aiResponse = await geminiAI.getAIResponse(enhancedQuery, context, conversationHistory);
+        
+        if (aiResponse.success && aiResponse.response) {
+          aiResponseText = aiResponse.response;
+        } else {
+          // Fallback to enhanced local responses with farm context
+          aiResponseText = getEnhancedLocalResponse(textToSend, farmData);
+        }
+      } else {
+        // Use local AI responses
+        aiResponseText = getAIResponse(textToSend);
+      }
+
+      // Add AI response
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        text: aiResponse,
+        text: aiResponseText,
         isUser: false,
         timestamp: new Date(),
         category: 'Response',
       };
 
       setMessages(prev => [...prev, aiMessage]);
+      
+      // Update conversation history
+      setConversationHistory(prev => [...prev, { role: 'assistant', content: aiResponseText }]);
+      
       setIsTyping(false);
-    }, 1500);
+
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      
+      // Fallback response
+      const fallbackMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        text: quickResponseTemplates.error[currentLanguage as keyof typeof quickResponseTemplates.error] || 
+              quickResponseTemplates.error.en,
+        isUser: false,
+        timestamp: new Date(),
+        category: 'Error',
+      };
+
+      setMessages(prev => [...prev, fallbackMessage]);
+      setIsTyping(false);
+    }
+  };
+
+  const getCurrentSeason = (): 'kharif' | 'rabi' | 'summer' => {
+    const month = new Date().getMonth() + 1;
+    if (month >= 6 && month <= 10) return 'kharif';
+    if (month >= 11 || month <= 3) return 'rabi';
+    return 'summer';
+  };
+
+  const getEnhancedLocalResponse = (query: string, farmData: IntegratedFarmData): string => {
+    const lowerQuery = query.toLowerCase();
+    
+    // Crop-specific advice
+    if (lowerQuery.includes('crop') || lowerQuery.includes('plant')) {
+      const currentCrops = farmData.currentCrops.map(c => c.cropName).join(', ');
+      return `🌾 Based on your current crops (${currentCrops}), here's what I recommend:\n\n${getAIResponse(query)}\n\nFor personalized advice specific to your ${farmData.userProfile.farmSize} acre farm in ${farmData.userProfile.location}, consider the current ${farmData.weatherData.current.condition} weather conditions.`;
+    }
+    
+    // Weather-based advice
+    if (lowerQuery.includes('weather')) {
+      const weather = farmData.weatherData.current;
+      return `🌤️ Current conditions in ${farmData.userProfile.location}:\n• Temperature: ${weather.temperature}°C\n• Humidity: ${weather.humidity}%\n• Condition: ${weather.condition}\n\n${getAIResponse(query)}`;
+    }
+    
+    // Market advice
+    if (lowerQuery.includes('price') || lowerQuery.includes('market')) {
+      const marketCrops = Object.keys(farmData.marketData);
+      if (marketCrops.length > 0) {
+        return `💰 Market information for your crops:\n${Object.entries(farmData.marketData).map(([crop, data]: [string, any]) => 
+          `• ${crop}: ₹${data.currentPrice}/quintal (${data.trend === 'up' ? '↗️' : data.trend === 'down' ? '↘️' : '→'} ${data.trend})`
+        ).join('\n')}\n\n${getAIResponse(query)}`;
+      }
+    }
+    
+    // Scheme advice
+    if (lowerQuery.includes('scheme') || lowerQuery.includes('government')) {
+      const eligibleSchemes = farmData.schemes.eligible.length;
+      return `🏛️ You're eligible for ${eligibleSchemes} government schemes based on your profile (${farmData.userProfile.farmSize} acres, ${farmData.userProfile.primaryCrops.join(', ')}).\n\n${getAIResponse(query)}`;
+    }
+    
+    return getAIResponse(query);
   };
 
   const handleQuickQuery = (query: string) => {
@@ -104,8 +313,15 @@ const Chatbot = () => {
           <Text style={styles.backButton}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('modules.aiAssistant')}</Text>
-        <TouchableOpacity onPress={() => Alert.alert('Help', 'Ask me anything about farming, weather, market prices, or government schemes. I\'m here to help!')}>
-          <Text style={styles.helpButton}>?</Text>
+        <TouchableOpacity onPress={() => Alert.alert(
+          t('common.help') || 'Help', 
+          aiEnabled 
+            ? '🧠 Gemini Pro AI-powered assistant ready! I provide advanced agricultural consulting with deep expertise in crop science, market analysis, and precision farming. Ask me anything!'
+            : 'Using offline mode. Ask me about farming, and I\'ll provide helpful guidance based on agricultural best practices.'
+        )}>
+          <Text style={[styles.helpButton, !aiEnabled && styles.offlineIndicator]}>
+            {aiEnabled ? '�' : '📱'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -362,6 +578,9 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  offlineIndicator: {
+    backgroundColor: '#FF6B6B',
   },
 });
 
