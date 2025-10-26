@@ -18,11 +18,11 @@ RUN ln -sf /usr/bin/python3 /usr/bin/python
 WORKDIR /app
 
 # Copy requirements and install Python dependencies
-COPY scraping/requirements.txt .
+COPY ./scraping/requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY scraping/ .
+COPY ./scraping/ .
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
