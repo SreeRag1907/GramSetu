@@ -1,0 +1,36 @@
+# Root Dockerfile for Railway deployment
+FROM selenium/standalone-chrome:4.15.0
+
+# Switch to root to install Python
+USER root
+
+# Install Python and pip
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create symlink for python command
+RUN ln -sf /usr/bin/python3 /usr/bin/python
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements and install Python dependencies
+COPY scraping/requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY scraping/ .
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV CHROME_BIN=/usr/bin/google-chrome
+ENV CHROME_PATH=/usr/bin/google-chrome
+
+# Expose port
+EXPOSE 5000
+
+# Start command
+CMD ["python3", "agmarknet_scraper.py"]
