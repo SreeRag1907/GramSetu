@@ -9,30 +9,50 @@ import {
   Modal,
   Alert,
   Image,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useI18n } from '../i18n/useI18n';
 import {
-  ProduceListing,
-  MarketPrice,
-  mockMarketPrices,
-  mockListings,
-  cropUnits,
-  getTrendIcon,
-  getTrendColor,
-  initialListingForm,
-} from '../data/marketplace-data';
+  createProductListing,
+  getActiveListings,
+  getSellerListings,
+  ProductListing,
+  expressInterest,
+  incrementViews,
+} from '../services/marketplaceService';
+import { getLatestScrapedMarketData, agmarknetScraper } from '../services/agmarknetScraper';
+import { testFlaskConnection, testEnvironmentVariables, getNetworkInfo } from '../services/networkTest';
 
 const Marketplace = () => {
   const { t } = useI18n();
-  const [activeTab, setActiveTab] = useState<'sell' | 'prices' | 'listings'>('sell');
+  const [activeTab, setActiveTab] = useState<'sell' | 'prices' | 'buy'>('sell');
   const [showListingModal, setShowListingModal] = useState(false);
-  const [listings, setListings] = useState<ProduceListing[]>([]);
-  const [marketPrices, setMarketPrices] = useState<MarketPrice[]>([]);
+  const [listings, setListings] = useState<ProductListing[]>([]);
+  const [userListings, setUserListings] = useState<ProductListing[]>([]);
+  const [scrapedPrices, setScrapedPrices] = useState<any[]>([]);
+  const [isScrapingAvailable, setIsScrapingAvailable] = useState(false);
   const [userLocation, setUserLocation] = useState('');
+  const [userState, setUserState] = useState('');
+  const [userDistrict, setUserDistrict] = useState('');
+  const [userPhone, setUserPhone] = useState('');
+  const [userName, setUserName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCrop, setSelectedCrop] = useState('');
 
-  const [newListing, setNewListing] = useState(initialListingForm);
+  const [newListing, setNewListing] = useState({
+    crop: '',
+    quantity: '',
+    pricePerUnit: '',
+    unit: 'quintal',
+    negotiable: false,
+    quality: 'Good' as 'Premium' | 'Good' | 'Average',
+    description: '',
+  });
 
   const commonCrops = [
     'Rice', 'Wheat', 'Sugarcane', 'Cotton', 'Maize', 'Bajra', 'Jowar',
@@ -40,6 +60,24 @@ const Marketplace = () => {
   ];
 
   const units = ['quintal', 'kg', 'ton', 'bag', 'piece'];
+  const qualities = ['Premium', 'Good', 'Average'];
+
+  // Utility functions
+  const getTrendIcon = (trend: string): string => {
+    switch (trend) {
+      case 'up': return '📈';
+      case 'down': return '📉';
+      default: return '➡️';
+    }
+  };
+
+  const getTrendColor = (trend: string): string => {
+    switch (trend) {
+      case 'up': return '#4CAF50';
+      case 'down': return '#F44336';
+      default: return '#FF9800';
+    }
+  };
 
   useEffect(() => {
     loadUserData();
@@ -48,53 +86,197 @@ const Marketplace = () => {
 
   const loadUserData = async () => {
     try {
-      const village = await AsyncStorage.getItem('userVillage');
+      const state = await AsyncStorage.getItem('userState');
       const district = await AsyncStorage.getItem('userDistrict');
-      if (village && district) {
-        setUserLocation(`${village}, ${district}`);
+      const phone = await AsyncStorage.getItem('userPhone');
+      const name = await AsyncStorage.getItem('userName');
+      
+      if (state && district) {
+        setUserLocation(`${state}, ${district}`);
+        setUserState(state);
+        setUserDistrict(district);
       }
+      if (phone) setUserPhone(phone);
+      if (name) setUserName(name);
     } catch (error) {
       console.error('Error loading user data:', error);
     }
   };
 
-  const loadMarketData = () => {
-    setMarketPrices(mockMarketPrices);
-    setListings(mockListings);
+  const loadMarketData = async () => {
+    setLoading(true);
+    try {
+      // Debug network information
+      console.log('🔍 Starting network diagnostics...');
+      testEnvironmentVariables();
+      getNetworkInfo();
+      
+      // Test Flask connection with multiple URLs
+      const connectionTest = await testFlaskConnection();
+      
+      // Check if Flask scraping API is available
+      const scrapingHealthy = await agmarknetScraper.checkFlaskAPIHealth();
+      setIsScrapingAvailable(scrapingHealthy);
+      
+      let scrapedData: any[] = [];
+
+      // Load scraped prices if Flask API is available
+      if (scrapingHealthy) {
+        try {
+          console.log('Loading scraped market data...');
+          console.log('User State:', userState, 'User District:', userDistrict);
+          
+          // Use default values if user location is not available
+          const targetState = userState || 'Maharashtra';
+          const targetDistrict = userDistrict || 'Pune';
+          
+          console.log('Using State:', targetState, 'District:', targetDistrict);
+          
+          const scrapedResult = await getLatestScrapedMarketData(targetState, targetDistrict, [
+            'Wheat', 'Rice', 'Sugarcane', 'Cotton', 'Maize', 'Tomato', 'Onion', 'Potato'
+          ]);
+          
+          if (scrapedResult.success && scrapedResult.data.length > 0) {
+            console.log('Scraped data loaded:', scrapedResult.data.length, 'records');
+            
+            // Add scraped prices with a special source identifier
+            scrapedData = scrapedResult.data.map((price: any) => ({
+              ...price,
+              source: 'AGMARKNET (Real-time)',
+              isRealTime: true,
+              scrapedAt: scrapedResult.scrapedAt
+            }));
+            
+            setScrapedPrices(scrapedData);
+          } else {
+            console.log('No scraped data available');
+            setScrapedPrices([]);
+          }
+        } catch (scrapingError) {
+          console.error('Error loading scraped data:', scrapingError);
+          setScrapedPrices([]);
+        }
+      } else {
+        console.log('Flask scraping API not available');
+        setScrapedPrices([]);
+      }
+
+      // Load marketplace listings
+      const listingsResult = await getActiveListings({
+        state: userState,
+        limit: 50
+      });
+      if (listingsResult.success && listingsResult.data) {
+        setListings(listingsResult.data);
+      }
+
+      // Load user's own listings
+      if (userPhone) {
+        const userListingsResult = await getSellerListings(userPhone);
+        if (userListingsResult.success && userListingsResult.data) {
+          setUserListings(userListingsResult.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading market data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadMarketData();
+    setRefreshing(false);
   };
 
   const handleListProduce = async () => {
-    if (!newListing.crop || !newListing.quantity || !newListing.price) {
+    if (!newListing.crop || !newListing.quantity || !newListing.pricePerUnit) {
       Alert.alert('Error', 'Please fill all required fields');
       return;
     }
 
+    setLoading(true);
     try {
-      const userName = await AsyncStorage.getItem('userName') || 'Anonymous';
-      const userPhone = await AsyncStorage.getItem('userPhone') || '';
-
-      const listing: ProduceListing = {
-        id: Date.now().toString(),
+      const listingData: Omit<ProductListing, 'id' | 'createdAt' | 'updatedAt' | 'views' | 'interested'> = {
+        sellerId: userPhone,
+        sellerName: userName,
+        sellerLocation: userLocation,
+        sellerState: userState,
+        sellerDistrict: userDistrict,
+        sellerPhone: userPhone,
         crop: newListing.crop,
-        quantity: newListing.quantity,
-        price: newListing.price,
+        quantity: parseInt(newListing.quantity),
         unit: newListing.unit,
+        pricePerUnit: parseInt(newListing.pricePerUnit),
+        totalPrice: parseInt(newListing.quantity) * parseInt(newListing.pricePerUnit),
         negotiable: newListing.negotiable,
-        farmerName: userName,
-        location: userLocation,
-        phone: userPhone,
-        datePosted: new Date().toISOString().split('T')[0],
+        description: newListing.description,
+        quality: newListing.quality,
+        isActive: true,
       };
 
-      setListings([listing, ...listings]);
-      setShowListingModal(false);
-      setNewListing({ crop: '', quantity: '', price: '', unit: 'quintal', negotiable: false });
+      const result = await createProductListing(listingData);
       
-      Alert.alert('Success', 'Your produce has been listed successfully!');
+      if (result.success) {
+        setShowListingModal(false);
+        setNewListing({
+          crop: '',
+          quantity: '',
+          pricePerUnit: '',
+          unit: 'quintal',
+          negotiable: false,
+          quality: 'Good',
+          description: '',
+        });
+        
+        Alert.alert('Success', 'Your produce has been listed successfully!');
+        loadMarketData(); // Refresh data
+      } else {
+        Alert.alert('Error', result.error || 'Failed to list produce');
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to list produce. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
+
+  const handleExpressInterest = async (listingId: string) => {
+    try {
+      await expressInterest(listingId, userPhone);
+      Alert.alert('Interest Expressed', 'The seller will be notified of your interest.');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to express interest. Please try again.');
+    }
+  };
+
+  const handleViewListing = async (listingId: string) => {
+    try {
+      await incrementViews(listingId);
+    } catch (error) {
+      console.log('Failed to increment views:', error);
+    }
+  };
+
+  const filteredListings = listings.filter(listing => {
+    const matchesSearch = !searchQuery || 
+      listing.crop.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      listing.sellerLocation.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCrop = !selectedCrop || listing.crop === selectedCrop;
+    
+    return matchesSearch && matchesCrop && listing.sellerId !== userPhone;
+  });
+
+  const filteredPrices = scrapedPrices.filter((price: any) => {
+    const matchesSearch = !searchQuery || 
+      price.crop.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCrop = !selectedCrop || price.crop === selectedCrop;
+    
+    return matchesSearch && matchesCrop;
+  });
 
 
 
@@ -113,20 +295,22 @@ const Marketplace = () => {
       </TouchableOpacity>
 
       <Text style={styles.sectionTitle}>Your Active Listings</Text>
-      {listings.filter(listing => listing.location === userLocation).length > 0 ? (
-        listings.filter(listing => listing.location === userLocation).map((listing) => (
+      {userListings.filter(listing => listing.isActive).length > 0 ? (
+        userListings.filter(listing => listing.isActive).map((listing) => (
           <View key={listing.id} style={styles.listingCard}>
             <View style={styles.listingHeader}>
               <Text style={styles.cropName}>{listing.crop}</Text>
               <Text style={[styles.priceText, { color: '#4CAF50' }]}>
-                ₹{listing.price}/{listing.unit}
+                ₹{listing.pricePerUnit}/{listing.unit}
               </Text>
             </View>
             <Text style={styles.quantityText}>{listing.quantity} {listing.unit}</Text>
-            <Text style={styles.dateText}>Listed on {listing.datePosted}</Text>
+            <Text style={styles.qualityText}>Quality: {listing.quality}</Text>
+            <Text style={styles.dateText}>Listed on {new Date(listing.createdAt).toLocaleDateString()}</Text>
             {listing.negotiable && (
               <Text style={styles.negotiableText}>💬 Price negotiable</Text>
             )}
+            <Text style={styles.viewsText}>👁️ {listing.views} views</Text>
           </View>
         ))
       ) : (
@@ -141,52 +325,175 @@ const Marketplace = () => {
 
   const renderPricesTab = () => (
     <View style={styles.tabContent}>
-      <Text style={styles.sectionTitle}>{t('marketplace.todayPrices')}</Text>
-      {marketPrices.map((price, index) => (
-        <View key={index} style={styles.priceCard}>
-          <View style={styles.priceHeader}>
-            <Text style={styles.cropName}>{price.crop}</Text>
-            <View style={styles.trendContainer}>
-              <Text style={styles.trendIcon}>{getTrendIcon(price.trend)}</Text>
-              <Text style={[styles.changeText, { color: getTrendColor(price.trend) }]}>
-                {price.change !== '0' && (price.trend === 'up' ? '+' : '')}₹{price.change}
-              </Text>
+      {/* Status indicator for scraping service */}
+      <View style={styles.statusContainer}>
+        <Text style={styles.statusText}>
+          {isScrapingAvailable ? '🟢 Real-time prices from AGMARKNET' : '🔴 Scraping service unavailable'}
+        </Text>
+        {!isScrapingAvailable && (
+          <Text style={styles.statusSubtext}>
+            Make sure Flask scraping service is running on port 5000
+          </Text>
+        )}
+      </View>
+
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search crops..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+      
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
+        <TouchableOpacity
+          style={[styles.filterChip, !selectedCrop && styles.selectedFilterChip]}
+          onPress={() => setSelectedCrop('')}
+        >
+          <Text style={[styles.filterChipText, !selectedCrop && styles.selectedFilterChipText]}>
+            All Crops
+          </Text>
+        </TouchableOpacity>
+        {commonCrops.map((crop) => (
+          <TouchableOpacity
+            key={crop}
+            style={[styles.filterChip, selectedCrop === crop && styles.selectedFilterChip]}
+            onPress={() => setSelectedCrop(crop)}
+          >
+            <Text style={[styles.filterChipText, selectedCrop === crop && styles.selectedFilterChipText]}>
+              {crop}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <Text style={styles.sectionTitle}>
+        {isScrapingAvailable ? 'Real-time Market Prices' : 'Market Prices'}
+      </Text>
+      
+      {filteredPrices.length > 0 ? (
+        filteredPrices.map((price: any, index: number) => (
+          <View key={index} style={styles.priceCard}>
+            <View style={styles.priceHeader}>
+              <Text style={styles.cropName}>{price.crop}</Text>
+              <View style={styles.trendContainer}>
+                <Text style={styles.trendIcon}>{getTrendIcon(price.trend)}</Text>
+                <Text style={[styles.changeText, { color: getTrendColor(price.trend) }]}>
+                  {price.change !== 0 && (price.trend === 'up' ? '+' : '')}₹{price.change}
+                </Text>
+              </View>
             </View>
+            <Text style={styles.marketName}>{price.market}</Text>
+            <Text style={styles.currentPrice}>₹{price.price} per {price.unit}</Text>
+            {price.source && (
+              <Text style={styles.sourceText}>Source: {price.source}</Text>
+            )}
+            {price.scrapedAt && (
+              <Text style={styles.sourceText}>
+                Updated: {new Date(price.scrapedAt).toLocaleTimeString()}
+              </Text>
+            )}
           </View>
-          <Text style={styles.marketName}>{price.market}</Text>
-          <Text style={styles.currentPrice}>₹{price.price} per {price.unit}</Text>
+        ))
+      ) : (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyIcon}>📊</Text>
+          <Text style={styles.emptyTitle}>
+            {isScrapingAvailable ? 'No price data available' : 'Scraping service offline'}
+          </Text>
+          <Text style={styles.emptySubtitle}>
+            {isScrapingAvailable 
+              ? 'Try refreshing or check your filters' 
+              : 'Start the Flask scraping service to see real-time prices'
+            }
+          </Text>
         </View>
-      ))}
+      )}
     </View>
   );
 
-  const renderListingsTab = () => (
+  const renderBuyTab = () => (
     <View style={styles.tabContent}>
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search products..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
+      
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
+        <TouchableOpacity
+          style={[styles.filterChip, !selectedCrop && styles.selectedFilterChip]}
+          onPress={() => setSelectedCrop('')}
+        >
+          <Text style={[styles.filterChipText, !selectedCrop && styles.selectedFilterChipText]}>
+            All Crops
+          </Text>
+        </TouchableOpacity>
+        {commonCrops.map((crop) => (
+          <TouchableOpacity
+            key={crop}
+            style={[styles.filterChip, selectedCrop === crop && styles.selectedFilterChip]}
+            onPress={() => setSelectedCrop(crop)}
+          >
+            <Text style={[styles.filterChipText, selectedCrop === crop && styles.selectedFilterChipText]}>
+              {crop}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       <Text style={styles.sectionTitle}>Available Produce</Text>
-      {listings.map((listing) => (
+      {filteredListings.map((listing) => (
         <View key={listing.id} style={styles.buyerListingCard}>
           <View style={styles.listingHeader}>
             <Text style={styles.cropName}>{listing.crop}</Text>
             <Text style={[styles.priceText, { color: '#4CAF50' }]}>
-              ₹{listing.price}/{listing.unit}
+              ₹{listing.pricePerUnit}/{listing.unit}
             </Text>
           </View>
           <Text style={styles.quantityText}>{listing.quantity} {listing.unit} available</Text>
+          <Text style={styles.qualityText}>Quality: {listing.quality}</Text>
+          {listing.description && (
+            <Text style={styles.descriptionText}>{listing.description}</Text>
+          )}
           <View style={styles.farmerInfo}>
-            <Text style={styles.farmerName}>👨‍🌾 {listing.farmerName}</Text>
-            <Text style={styles.locationText}>📍 {listing.location}</Text>
+            <Text style={styles.farmerName}>👨‍🌾 {listing.sellerName}</Text>
+            <Text style={styles.locationText}>📍 {listing.sellerLocation}</Text>
           </View>
           {listing.negotiable && (
             <Text style={styles.negotiableText}>💬 Price negotiable</Text>
           )}
-          <TouchableOpacity
-            style={styles.contactButton}
-            onPress={() => Alert.alert('Contact Farmer', `Call ${listing.farmerName} at ${listing.phone}`)}
-          >
-            <Text style={styles.contactButtonText}>📞 Contact Farmer</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.contactButton}
+              onPress={() => {
+                handleViewListing(listing.id!);
+                Alert.alert('Contact Farmer', `Call ${listing.sellerName} at ${listing.sellerPhone}`);
+              }}
+            >
+              <Text style={styles.contactButtonText}>📞 Contact</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.interestButton}
+              onPress={() => handleExpressInterest(listing.id!)}
+            >
+              <Text style={styles.interestButtonText}>💝 Interest</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ))}
+      
+      {filteredListings.length === 0 && (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyIcon}>🛒</Text>
+          <Text style={styles.emptyTitle}>No products found</Text>
+          <Text style={styles.emptySubtitle}>Try adjusting your search filters</Text>
+        </View>
+      )}
     </View>
   );
 
@@ -218,19 +525,21 @@ const Marketplace = () => {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'listings' && styles.activeTab]}
-          onPress={() => setActiveTab('listings')}
+          style={[styles.tab, activeTab === 'buy' && styles.activeTab]}
+          onPress={() => setActiveTab('buy')}
         >
-          <Text style={[styles.tabText, activeTab === 'listings' && styles.activeTabText]}>
+          <Text style={[styles.tabText, activeTab === 'buy' && styles.activeTabText]}>
             Buy
           </Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }>
         {activeTab === 'sell' && renderSellTab()}
         {activeTab === 'prices' && renderPricesTab()}
-        {activeTab === 'listings' && renderListingsTab()}
+        {activeTab === 'buy' && renderBuyTab()}
       </ScrollView>
 
       {/* List Produce Modal */}
@@ -311,9 +620,44 @@ const Marketplace = () => {
                 <TextInput
                   style={styles.input}
                   placeholder="Enter price"
-                  value={newListing.price}
-                  onChangeText={(text) => setNewListing({...newListing, price: text})}
+                  value={newListing.pricePerUnit}
+                  onChangeText={(text) => setNewListing({...newListing, pricePerUnit: text})}
                   keyboardType="numeric"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Quality</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {qualities.map((quality) => (
+                    <TouchableOpacity
+                      key={quality}
+                      style={[
+                        styles.unitChip,
+                        newListing.quality === quality && styles.selectedUnitChip
+                      ]}
+                      onPress={() => setNewListing({...newListing, quality: quality as any})}
+                    >
+                      <Text style={[
+                        styles.unitChipText,
+                        newListing.quality === quality && styles.selectedUnitChipText
+                      ]}>
+                        {quality}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Description (Optional)</Text>
+                <TextInput
+                  style={[styles.input, { height: 80 }]}
+                  placeholder="Additional details about your produce..."
+                  value={newListing.description}
+                  onChangeText={(text) => setNewListing({...newListing, description: text})}
+                  multiline
+                  numberOfLines={3}
                 />
               </View>
 
@@ -490,8 +834,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 15,
+    flex: 1,
     alignItems: 'center',
-    marginTop: 10,
   },
   contactButtonText: {
     color: 'white',
@@ -676,6 +1020,100 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  // New styles for improved marketplace
+  searchContainer: {
+    marginBottom: 15,
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: 'white',
+  },
+  filterContainer: {
+    marginBottom: 15,
+  },
+  filterChip: {
+    backgroundColor: '#F0F0F0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#DDD',
+  },
+  selectedFilterChip: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  filterChipText: {
+    color: '#666',
+    fontSize: 12,
+  },
+  selectedFilterChipText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  qualityText: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 5,
+  },
+  viewsText: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 5,
+  },
+  sourceText: {
+    fontSize: 11,
+    color: '#888',
+    marginTop: 3,
+    fontStyle: 'italic',
+  },
+  descriptionText: {
+    fontSize: 13,
+    color: '#555',
+    marginVertical: 5,
+    lineHeight: 18,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    marginTop: 10,
+    gap: 10,
+  },
+  interestButton: {
+    backgroundColor: '#FF9800',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    flex: 1,
+    alignItems: 'center',
+  },
+  interestButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  statusContainer: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 15,
+    elevation: 1,
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 5,
+  },
+  statusSubtext: {
+    fontSize: 12,
+    color: '#666',
+    lineHeight: 16,
   },
 });
 

@@ -1,0 +1,1 @@
+web: cd scraping && python agmarknet_scraper.py

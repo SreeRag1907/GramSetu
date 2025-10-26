@@ -113,7 +113,7 @@
     "phoneVerifiedSuccess": "Phone verified successfully!",
     "personalInformation": "Personal Information",
     "fullName": "Full Name",
-    "village": "Village",
+    "state": "State",
     "district": "District",
     "primaryCrop": "Primary Crop",
     "completeRegistration": "Complete Registration",
@@ -123,7 +123,7 @@
       "enterPhone": "Enter 10-digit mobile number",
       "enterOtp": "Enter 6-digit OTP",
       "enterName": "Enter your full name",
-      "enterVillage": "Enter your village name",
+      "enterState": "Enter your state name",
       "enterDistrict": "Enter your district"
     },
     "errors": {

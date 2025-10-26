@@ -1,13 +1,17 @@
 {
   "expo": {
-    "name": "bolt-expo-nativewind",
-    "slug": "bolt-expo-nativewind",
+    "name": "GramSetu",
+    "slug": "gramsetu",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "myapp",
+    "scheme": "gramsetu",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "android": {
+      "usesCleartextTraffic": true,
+      "networkSecurityConfig": "network_security_config"
+    },
     "ios": {
       "supportsTablet": true
     },
@@ -19,6 +23,9 @@
     "plugins": ["expo-router", "expo-font", "expo-web-browser"],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "flaskApiUrl": "http://192.168.1.7:5000"
     }
   }
 }

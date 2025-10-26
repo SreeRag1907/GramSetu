@@ -1,0 +1,30 @@
+{
+  "name": "GramSetu Flask Scraper",
+  "image": "mcr.microsoft.com/vscode/devcontainers/python:3.9",
+  "features": {
+    "ghcr.io/devcontainers/features/chrome": {},
+    "ghcr.io/devcontainers/features/node": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.flake8",
+        "ms-toolsai.jupyter"
+      ]
+    }
+  },
+  "forwardPorts": [5000, 8081],
+  "portsAttributes": {
+    "5000": {
+      "label": "Flask API",
+      "onAutoForward": "notify"
+    },
+    "8081": {
+      "label": "Expo Dev Server", 
+      "onAutoForward": "ignore"
+    }
+  },
+  "postCreateCommand": "pip install -r scraping/requirements.txt",
+  "remoteUser": "vscode"
+}

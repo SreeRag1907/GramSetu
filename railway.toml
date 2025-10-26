@@ -1,0 +1,17 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "python agmarknet_scraper.py"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+
+[env]
+FLASK_ENV = "production"
+CHROME_HEADLESS = "true"
+CHROME_NO_SANDBOX = "true"
+
+# Specify that we want to deploy from the scraping folder
+[build.env]
+NIXPACKS_BUILD_CMD = "cd scraping && pip install -r requirements.txt"

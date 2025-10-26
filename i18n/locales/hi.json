@@ -113,7 +113,7 @@
     "phoneVerifiedSuccess": "फोन सफलतापूर्वक सत्यापित!",
     "personalInformation": "व्यक्तिगत जानकारी",
     "fullName": "पूरा नाम",
-    "village": "गांव",
+    "state": "राज्य",
     "district": "जिला",
     "primaryCrop": "मुख्य फसल",
     "completeRegistration": "पंजीकरण पूरा करें",
@@ -123,7 +123,7 @@
       "enterPhone": "10 अंकों का मोबाइल नंबर दर्ज करें",
       "enterOtp": "6 अंकों का OTP दर्ज करें",
       "enterName": "अपना पूरा नाम दर्ज करें",
-      "enterVillage": "अपने गांव का नाम दर्ज करें",
+      "enterState": "अपना राज्य दर्ज करें",
       "enterDistrict": "अपना जिला दर्ज करें"
     },
     "errors": {

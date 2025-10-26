@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: gramsetu-scraper
+    env: python
+    buildCommand: "pip install -r scraping/requirements.txt"
+    startCommand: "cd scraping && python agmarknet_scraper.py"
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: CHROME_HEADLESS
+        value: true
+      - key: CHROME_NO_SANDBOX
+        value: true
