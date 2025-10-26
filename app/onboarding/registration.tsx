@@ -9,48 +9,28 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useI18n } from '../../i18n/useI18n';
-
+import { createUser, checkUserExists } from '../../services/userService';
 const Registration = () => {
   const { t } = useI18n();
   const [formData, setFormData] = useState({
     phoneNumber: '',
     otp: '',
     name: '',
-    village: '',
+    state: '',
     district: '',
-    primaryCrop: '',
   });
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [registrationProgress, setRegistrationProgress] = useState('');
 
-  const getCrops = () => [
-    { id: 'rice', name: t('registration.crops.rice') },
-    { id: 'wheat', name: t('registration.crops.wheat') },
-    { id: 'sugarcane', name: t('registration.crops.sugarcane') },
-    { id: 'cotton', name: t('registration.crops.cotton') },
-    { id: 'maize', name: t('registration.crops.maize') },
-    { id: 'bajra', name: t('registration.crops.bajra') },
-    { id: 'jowar', name: t('registration.crops.jowar') },
-    { id: 'barley', name: t('registration.crops.barley') },
-    { id: 'gram', name: t('registration.crops.gram') },
-    { id: 'tur', name: t('registration.crops.tur') },
-    { id: 'mustard', name: t('registration.crops.mustard') },
-    { id: 'groundnut', name: t('registration.crops.groundnut') },
-    { id: 'soybean', name: t('registration.crops.soybean') },
-    { id: 'sunflower', name: t('registration.crops.sunflower') },
-    { id: 'tomato', name: t('registration.crops.tomato') },
-    { id: 'onion', name: t('registration.crops.onion') },
-    { id: 'potato', name: t('registration.crops.potato') },
-    { id: 'chili', name: t('registration.crops.chili') },
-    { id: 'other', name: t('registration.crops.other') }
-  ];
-
-  const handleSendOTP = async () => {
+    const handleSendOTP = async () => {
     if (formData.phoneNumber.length !== 10) {
       Alert.alert(t('common.error'), t('registration.errors.invalidPhone'));
       return;
@@ -76,24 +56,78 @@ const Registration = () => {
   };
 
   const handleRegistration = async () => {
-    if (!formData.name || !formData.village || !formData.district || !formData.primaryCrop) {
+    if (!formData.name || !formData.state || !formData.district ) {
       Alert.alert(t('common.error'), t('registration.errors.fillAllFields'));
       return;
     }
 
+    setIsLoading(true);
+    setRegistrationProgress('Checking Firebase connection...');
+    
     try {
-      await AsyncStorage.setItem('userName', formData.name);
-      await AsyncStorage.setItem('userVillage', formData.village);
-      await AsyncStorage.setItem('userDistrict', formData.district);
-      await AsyncStorage.setItem('userPrimaryCrop', formData.primaryCrop);
-      await AsyncStorage.setItem('userPhone', formData.phoneNumber);
-      await AsyncStorage.setItem('isOnboarded', 'true');
+      console.log('🔍 Starting registration process for:', formData.phoneNumber);
+            
+      setRegistrationProgress('Checking if user already exists...');
+      
+      // Check if user already exists
+      const userExists = await checkUserExists(formData.phoneNumber);
+      
+      if (userExists) {
+        console.log('❌ User already exists:', formData.phoneNumber);
+        Alert.alert(t('common.error'), 'User with this phone number already exists!');
+        setIsLoading(false);
+        setRegistrationProgress('');
+        return;
+      }
 
-      Alert.alert(t('registration.welcome'), t('registration.registrationComplete'), [
-        { text: t('common.continue'), onPress: () => router.replace('/dashboard') }
-      ]);
+      console.log('✅ User does not exist, proceeding with registration');
+      setRegistrationProgress('Creating your account...');
+
+      // Prepare user data
+      const userData = {
+        phoneNumber: formData.phoneNumber,
+        name: formData.name.trim(),
+        state: formData.state.trim(),
+        district: formData.district.trim(),
+      };
+
+      console.log('📝 User data to save:', userData);
+
+      // Save to Firebase
+      const result = await createUser(userData);
+
+      console.log('🔥 Firebase result:', result);
+
+      if (result.success) {
+        console.log('✅ User created successfully in Firebase');
+        setRegistrationProgress('Saving to local storage...');
+
+        // Save to AsyncStorage for local access
+        await AsyncStorage.setItem('userName', formData.name);
+        await AsyncStorage.setItem('userState', formData.state);
+        await AsyncStorage.setItem('userDistrict', formData.district);
+        await AsyncStorage.setItem('userPhone', formData.phoneNumber);
+        await AsyncStorage.setItem('isOnboarded', 'true');
+
+        console.log('✅ Data saved to AsyncStorage');
+        setRegistrationProgress('Registration completed!');
+
+        setTimeout(() => {
+          Alert.alert(t('registration.welcome'), t('registration.registrationComplete'), [
+            { text: t('common.continue'), onPress: () => router.replace('/dashboard') }
+          ]);
+        }, 500);
+
+      } else {
+        console.error('❌ Firebase registration failed:', result.error);
+        Alert.alert(t('common.error'), result.error || t('registration.errors.registrationFailed'));
+      }
     } catch (error) {
+      console.error('❌ Registration error:', error);
       Alert.alert(t('common.error'), t('registration.errors.registrationFailed'));
+    } finally {
+      setIsLoading(false);
+      setRegistrationProgress('');
     }
   };
 
@@ -182,12 +216,12 @@ const Registration = () => {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>{t('registration.village')}</Text>
+              <Text style={styles.label}>{t('registration.state')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder={t('registration.placeholders.enterVillage')}
-                value={formData.village}
-                onChangeText={(text) => updateFormData('village', text)}
+                placeholder={t('registration.placeholders.enterState')}
+                value={formData.state}
+                onChangeText={(text) => updateFormData('state', text)}
               />
             </View>
 
@@ -201,38 +235,40 @@ const Registration = () => {
               />
             </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>{t('registration.primaryCrop')}</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cropSelection}>
-                {getCrops().map((crop) => (
-                  <TouchableOpacity
-                    key={crop.id}
-                    style={[
-                      styles.cropButton,
-                      formData.primaryCrop === crop.name && styles.selectedCrop
-                    ]}
-                    onPress={() => updateFormData('primaryCrop', crop.name)}
-                  >
-                    <Text style={[
-                      styles.cropButtonText,
-                      formData.primaryCrop === crop.name && styles.selectedCropText
-                    ]}>
-                      {crop.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
+            
 
             <TouchableOpacity
-              style={styles.primaryButton}
+              style={[styles.primaryButton, isLoading && styles.disabledButton]}
               onPress={handleRegistration}
+              disabled={isLoading}
             >
-              <Text style={styles.primaryButtonText}>{t('registration.completeRegistration')}</Text>
+              {isLoading ? (
+                <Text style={styles.primaryButtonText}>Creating Account...</Text>
+              ) : (
+                <Text style={styles.primaryButtonText}>{t('registration.completeRegistration')}</Text>
+              )}
             </TouchableOpacity>
+
+            {/* Debug Firebase Button */}
+            
           </View>
         )}
       </ScrollView>
+
+      {/* Loading Modal */}
+      <Modal
+        visible={isLoading}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.loadingModal}>
+            <ActivityIndicator size="large" color="#4CAF50" />
+            <Text style={styles.loadingTitle}>Creating Your Account</Text>
+            <Text style={styles.loadingSubtitle}>{registrationProgress}</Text>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
@@ -321,30 +357,59 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  cropSelection: {
+  disabledButton: {
+    backgroundColor: '#A5D6A7',
+    opacity: 0.7,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingModal: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    minWidth: 250,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  loadingTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 15,
+    marginBottom: 8,
+  },
+  loadingSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  debugButton: {
+    backgroundColor: '#FF9800',
+    borderRadius: 10,
+    padding: 12,
+    alignItems: 'center',
     marginTop: 10,
   },
-  cropButton: {
-    backgroundColor: '#F0F0F0',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginRight: 10,
-    borderWidth: 1,
-    borderColor: '#DDD',
-  },
-  selectedCrop: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
-  },
-  cropButtonText: {
-    color: '#666',
-    fontSize: 14,
-  },
-  selectedCropText: {
+  debugButtonText: {
     color: 'white',
+    fontSize: 14,
     fontWeight: 'bold',
   },
+  
 });
 
 export default Registration;
