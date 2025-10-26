@@ -520,12 +520,7 @@ const Marketplace = () => {
           <View key={index} style={styles.priceCard}>
             <View style={styles.priceHeader}>
               <Text style={styles.cropName}>{price.crop}</Text>
-              <View style={styles.trendContainer}>
-                <Text style={styles.trendIcon}>{getTrendIcon(price.trend)}</Text>
-                <Text style={[styles.changeText, { color: getTrendColor(price.trend) }]}>
-                  {price.change !== 0 && (price.trend === 'up' ? '+' : '')}₹{price.change}
-                </Text>
-              </View>
+             
             </View>
             <Text style={styles.marketName}>{price.market}</Text>
             <Text style={styles.currentPrice}>₹{price.price} per {price.unit}</Text>
