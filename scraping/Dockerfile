@@ -1,4 +1,5 @@
 # Ultra-simple Railway deployment using pre-built Chrome image
+# Updated for Railway deployment fix
 FROM selenium/standalone-chrome:4.15.0
 
 # Switch to root to install Python
