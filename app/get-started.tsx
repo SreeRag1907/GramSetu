@@ -82,7 +82,7 @@ const GetStartedScreen = () => {
               onPress={handleGetStarted}
               activeOpacity={0.8}
             >
-              <Text style={styles.getStartedText}>{t('onboarding.getStarted')}</Text>
+              <Text style={styles.getStartedText}>Continue to Login</Text>
               <Text style={styles.arrowIcon}>→</Text>
             </TouchableOpacity>
             

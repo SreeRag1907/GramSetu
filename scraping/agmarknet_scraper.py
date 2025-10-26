@@ -6,11 +6,13 @@ import os
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from webdriver_manager.chrome import ChromeDriverManager
 from datetime import datetime, timedelta
 import logging
 
@@ -19,21 +21,61 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def setup_chrome_driver():
-    """Setup Chrome driver with appropriate options"""
+    """Setup Chrome driver with appropriate options for Railway deployment"""
     chrome_options = Options()
-    chrome_options.add_argument("--headless")  # Run in background
+    
+    # Essential options for Railway/Linux environment
+    chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--disable-software-rasterizer")
+    chrome_options.add_argument("--disable-background-timer-throttling")
+    chrome_options.add_argument("--disable-backgrounding-occluded-windows")
+    chrome_options.add_argument("--disable-renderer-backgrounding")
+    chrome_options.add_argument("--disable-features=TranslateUI")
+    chrome_options.add_argument("--disable-ipc-flooding-protection")
     chrome_options.add_argument("--window-size=1920,1080")
-    chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+    chrome_options.add_argument("--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    
+    # Memory and performance optimizations
+    chrome_options.add_argument("--memory-pressure-off")
+    chrome_options.add_argument("--max_old_space_size=4096")
+    chrome_options.add_argument("--single-process")
+    
+    # Additional stability options
+    chrome_options.add_argument("--disable-web-security")
+    chrome_options.add_argument("--allow-running-insecure-content")
+    chrome_options.add_argument("--disable-extensions")
+    chrome_options.add_argument("--disable-plugins")
+    chrome_options.add_argument("--disable-images")
+    chrome_options.add_argument("--disable-javascript")
     
     try:
-        driver = webdriver.Chrome(options=chrome_options)
+        # Use webdriver-manager to automatically handle ChromeDriver
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        
+        # Set timeouts
+        driver.set_page_load_timeout(30)
+        driver.implicitly_wait(10)
+        
+        logger.info("ChromeDriver setup successful")
         return driver
+        
     except Exception as e:
         logger.error(f"Failed to setup Chrome driver: {e}")
-        raise
+        
+        # Fallback: try without service (for local development)
+        try:
+            driver = webdriver.Chrome(options=chrome_options)
+            driver.set_page_load_timeout(30)
+            driver.implicitly_wait(10)
+            logger.info("ChromeDriver setup successful (fallback)")
+            return driver
+        except Exception as fallback_error:
+            logger.error(f"Fallback ChromeDriver setup also failed: {fallback_error}")
+            raise Exception(f"Could not setup ChromeDriver: {e}, Fallback: {fallback_error}")
 
 def close_popup(driver):
     """Close any popup that might appear on the page"""

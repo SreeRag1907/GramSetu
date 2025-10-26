@@ -15,8 +15,8 @@ import {
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useI18n } from '../../i18n/useI18n';
-import { createUser, checkUserExists } from '../../services/userService';
-const Registration = () => {
+import { createUser, checkUserExists, getUserByPhone } from '../../services/userService';
+const LoginRegistration = () => {
   const { t } = useI18n();
   const [formData, setFormData] = useState({
     phoneNumber: '',
@@ -28,61 +28,103 @@ const Registration = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [registrationProgress, setRegistrationProgress] = useState('');
+  const [loadingMessage, setLoadingMessage] = useState('');
+  const [isExistingUser, setIsExistingUser] = useState(false);
+  const [userExists, setUserExists] = useState<boolean | null>(null);
 
-    const handleSendOTP = async () => {
+  const handleSendOTP = async () => {
     if (formData.phoneNumber.length !== 10) {
-      Alert.alert(t('common.error'), t('registration.errors.invalidPhone'));
+      Alert.alert('Error', 'Please enter a valid 10-digit phone number');
       return;
     }
 
     setIsLoading(true);
-    // Simulate OTP sending
-    setTimeout(() => {
-      setOtpSent(true);
+    setLoadingMessage('Checking your account...');
+    
+    try {
+      // Check if user already exists
+      const exists = await checkUserExists(formData.phoneNumber);
+      setUserExists(exists);
+      setIsExistingUser(exists);
+      
+      // Simulate OTP sending
+      setTimeout(() => {
+        setOtpSent(true);
+        setIsLoading(false);
+        setLoadingMessage('');
+        
+        const message = exists 
+          ? `Welcome back! OTP sent to ${formData.phoneNumber}. Demo OTP: 123456`
+          : `OTP sent to ${formData.phoneNumber}. Demo OTP: 123456`;
+        
+        Alert.alert('OTP Sent', message);
+      }, 1000);
+      
+    } catch (error) {
       setIsLoading(false);
-      Alert.alert(t('registration.otpSent'), `${t('registration.otpSentMessage')} ${formData.phoneNumber}. ${t('registration.demoOtp')}`);
-    }, 1000);
+      setLoadingMessage('');
+      Alert.alert('Error', 'Failed to verify phone number. Please try again.');
+    }
   };
 
   const handleVerifyOTP = async () => {
     if (formData.otp !== '123456') {
-      Alert.alert(t('common.error'), t('registration.errors.invalidOtp'));
-      return;
-    }
-
-    setOtpVerified(true);
-    Alert.alert(t('common.success'), t('registration.phoneVerified'));
-  };
-
-  const handleRegistration = async () => {
-    if (!formData.name || !formData.state || !formData.district ) {
-      Alert.alert(t('common.error'), t('registration.errors.fillAllFields'));
+      Alert.alert('Error', 'Please enter the correct OTP');
       return;
     }
 
     setIsLoading(true);
-    setRegistrationProgress('Checking Firebase connection...');
+    setLoadingMessage(isExistingUser ? 'Logging you in...' : 'Verifying your phone...');
     
     try {
-      console.log('🔍 Starting registration process for:', formData.phoneNumber);
-            
-      setRegistrationProgress('Checking if user already exists...');
-      
-      // Check if user already exists
-      const userExists = await checkUserExists(formData.phoneNumber);
-      
-      if (userExists) {
-        console.log('❌ User already exists:', formData.phoneNumber);
-        Alert.alert(t('common.error'), 'User with this phone number already exists!');
+      if (isExistingUser) {
+        // User exists - proceed with login
+        const userResult = await getUserByPhone(formData.phoneNumber);
+        
+        if (userResult.success && userResult.data) {
+          setLoadingMessage('Welcome back! Setting up your session...');
+          
+          // Store user data and navigate to dashboard
+          await AsyncStorage.setItem('userPhone', formData.phoneNumber);
+          await AsyncStorage.setItem('userName', userResult.data.name);
+          await AsyncStorage.setItem('userState', userResult.data.state);
+          await AsyncStorage.setItem('userDistrict', userResult.data.district);
+          await AsyncStorage.setItem('isOnboarded', 'true');
+          
+          setIsLoading(false);
+          setLoadingMessage('');
+          Alert.alert('Welcome Back!', `Hello ${userResult.data.name}!`, [
+            { text: 'Continue', onPress: () => router.replace('/dashboard') }
+          ]);
+        } else {
+          setIsLoading(false);
+          setLoadingMessage('');
+          Alert.alert('Error', 'Failed to retrieve user data. Please try again.');
+        }
+      } else {
+        // New user - proceed to registration form
+        setOtpVerified(true);
         setIsLoading(false);
-        setRegistrationProgress('');
-        return;
+        setLoadingMessage('');
+        Alert.alert('Welcome New User!', 'Please complete your profile to get started with GramSetu');
       }
+    } catch (error) {
+      setIsLoading(false);
+      setLoadingMessage('');
+      Alert.alert('Error', 'Verification failed. Please try again.');
+    }
+  };
 
-      console.log('✅ User does not exist, proceeding with registration');
-      setRegistrationProgress('Creating your account...');
+  const handleRegistration = async () => {
+    if (!formData.name || !formData.state || !formData.district ) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
 
+    setIsLoading(true);
+    setLoadingMessage('Creating your account...');
+    
+    try {
       // Prepare user data
       const userData = {
         phoneNumber: formData.phoneNumber,
@@ -91,43 +133,33 @@ const Registration = () => {
         district: formData.district.trim(),
       };
 
-      console.log('📝 User data to save:', userData);
-
       // Save to Firebase
       const result = await createUser(userData);
 
-      console.log('🔥 Firebase result:', result);
-
       if (result.success) {
-        console.log('✅ User created successfully in Firebase');
-        setRegistrationProgress('Saving to local storage...');
+        setLoadingMessage('Saving to local storage...');
 
         // Save to AsyncStorage for local access
         await AsyncStorage.setItem('userName', formData.name);
+        await AsyncStorage.setItem('userPhone', formData.phoneNumber);
         await AsyncStorage.setItem('userState', formData.state);
         await AsyncStorage.setItem('userDistrict', formData.district);
-        await AsyncStorage.setItem('userPhone', formData.phoneNumber);
         await AsyncStorage.setItem('isOnboarded', 'true');
 
-        console.log('✅ Data saved to AsyncStorage');
-        setRegistrationProgress('Registration completed!');
-
-        setTimeout(() => {
-          Alert.alert(t('registration.welcome'), t('registration.registrationComplete'), [
-            { text: t('common.continue'), onPress: () => router.replace('/dashboard') }
-          ]);
-        }, 500);
-
+        setLoadingMessage('Registration complete!');
+        
+        Alert.alert('Success', 'Account created successfully!', [
+          { text: 'Continue', onPress: () => router.replace('/dashboard') }
+        ]);
       } else {
-        console.error('❌ Firebase registration failed:', result.error);
-        Alert.alert(t('common.error'), result.error || t('registration.errors.registrationFailed'));
+        Alert.alert('Error', result.error || 'Failed to create account. Please try again.');
       }
     } catch (error) {
-      console.error('❌ Registration error:', error);
-      Alert.alert(t('common.error'), t('registration.errors.registrationFailed'));
+      console.error('Registration error:', error);
+      Alert.alert('Error', 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
-      setRegistrationProgress('');
+      setLoadingMessage('');
     }
   };
 
@@ -142,19 +174,39 @@ const Registration = () => {
     >
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.title}>{t('registration.createAccount')}</Text>
-          <Text style={styles.subtitle}>{t('registration.joinFarmers')}</Text>
+          <Text style={styles.title}>
+            {!otpSent 
+              ? "Login to GramSetu" 
+              : userExists === null 
+                ? "Verify Phone Number"
+                : userExists 
+                  ? "Welcome Back!" 
+                  : "New User Registration"
+            }
+          </Text>
+          <Text style={styles.subtitle}>
+            {!otpSent 
+              ? "Enter your mobile number to continue" 
+              : userExists === null 
+                ? "Please verify your phone number to continue"
+                : userExists 
+                  ? "Please enter the OTP to login to your account" 
+                  : "You're a new user! Please complete your profile"
+            }
+          </Text>
         </View>
 
         {/* Phone Number Verification */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📱 {t('registration.phoneVerification')}</Text>
+          <Text style={styles.sectionTitle}>
+            📱 {!otpSent ? "Login with Mobile Number" : "Verification Code"}
+          </Text>
           
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>{t('registration.mobileNumber')}</Text>
+            <Text style={styles.label}>Mobile Number</Text>
             <TextInput
               style={styles.input}
-              placeholder={t('registration.placeholders.enterPhone')}
+              placeholder="Enter your 10-digit mobile number"
               value={formData.phoneNumber}
               onChangeText={(text) => updateFormData('phoneNumber', text)}
               keyboardType="phone-pad"
@@ -170,16 +222,16 @@ const Registration = () => {
               disabled={isLoading}
             >
               <Text style={styles.primaryButtonText}>
-                {isLoading ? t('registration.sending') : t('registration.sendOtp')}
+                {isLoading ? "Checking..." : "Login / Register"}
               </Text>
             </TouchableOpacity>
           ) : !otpVerified ? (
             <>
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>{t('registration.enterOtp')}</Text>
+                <Text style={styles.label}>Enter OTP</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder={t('registration.placeholders.enterOtp')}
+                  placeholder="Enter 6-digit OTP"
                   value={formData.otp}
                   onChangeText={(text) => updateFormData('otp', text)}
                   keyboardType="number-pad"
@@ -189,53 +241,54 @@ const Registration = () => {
               <TouchableOpacity
                 style={styles.primaryButton}
                 onPress={handleVerifyOTP}
+                disabled={isLoading}
               >
-                <Text style={styles.primaryButtonText}>{t('registration.verifyOtp')}</Text>
+                <Text style={styles.primaryButtonText}>
+                  {isLoading ? "Verifying..." : userExists ? "Login" : "Verify OTP"}
+                </Text>
               </TouchableOpacity>
             </>
           ) : (
             <View style={styles.successContainer}>
-              <Text style={styles.successText}>✅ {t('registration.phoneVerifiedSuccess')}</Text>
+              <Text style={styles.successText}>✅ Phone number verified successfully!</Text>
             </View>
           )}
         </View>
 
-        {/* Personal Information */}
-        {otpVerified && (
+        {/* Personal Information - Only show for new users */}
+        {otpVerified && !isExistingUser && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>👤 {t('registration.personalInformation')}</Text>
+            <Text style={styles.sectionTitle}>👤 Complete Your Profile</Text>
             
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>{t('registration.fullName')}</Text>
+              <Text style={styles.label}>Full Name</Text>
               <TextInput
                 style={styles.input}
-                placeholder={t('registration.placeholders.enterName')}
+                placeholder="Enter your full name"
                 value={formData.name}
                 onChangeText={(text) => updateFormData('name', text)}
               />
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>{t('registration.state')}</Text>
+              <Text style={styles.label}>State</Text>
               <TextInput
                 style={styles.input}
-                placeholder={t('registration.placeholders.enterState')}
+                placeholder="Enter your state (e.g., Maharashtra)"
                 value={formData.state}
                 onChangeText={(text) => updateFormData('state', text)}
               />
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>{t('registration.district')}</Text>
+              <Text style={styles.label}>District</Text>
               <TextInput
                 style={styles.input}
-                placeholder={t('registration.placeholders.enterDistrict')}
+                placeholder="Enter your district (e.g., Pune)"
                 value={formData.district}
                 onChangeText={(text) => updateFormData('district', text)}
               />
             </View>
-
-            
 
             <TouchableOpacity
               style={[styles.primaryButton, isLoading && styles.disabledButton]}
@@ -245,12 +298,9 @@ const Registration = () => {
               {isLoading ? (
                 <Text style={styles.primaryButtonText}>Creating Account...</Text>
               ) : (
-                <Text style={styles.primaryButtonText}>{t('registration.completeRegistration')}</Text>
+                <Text style={styles.primaryButtonText}>Create Account</Text>
               )}
             </TouchableOpacity>
-
-            {/* Debug Firebase Button */}
-            
           </View>
         )}
       </ScrollView>
@@ -264,8 +314,17 @@ const Registration = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.loadingModal}>
             <ActivityIndicator size="large" color="#4CAF50" />
-            <Text style={styles.loadingTitle}>Creating Your Account</Text>
-            <Text style={styles.loadingSubtitle}>{registrationProgress}</Text>
+            <Text style={styles.loadingTitle}>
+              {userExists === null 
+                ? "Checking Account" 
+                : userExists 
+                  ? "Logging In" 
+                  : otpVerified 
+                    ? "Creating Account" 
+                    : "Verifying Phone"
+              }
+            </Text>
+            <Text style={styles.loadingSubtitle}>{loadingMessage}</Text>
           </View>
         </View>
       </Modal>
@@ -412,4 +471,4 @@ const styles = StyleSheet.create({
   
 });
 
-export default Registration;
+export default LoginRegistration;

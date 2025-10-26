@@ -1,0 +1,24 @@
+# Nixpacks configuration for Railway Chrome deployment
+
+providers = ["python"]
+
+[variables]
+PYTHONUNBUFFERED = "1"
+DISPLAY = ":99"
+
+[phases.setup]
+nixPkgs = [
+  "python311", 
+  "chromium", 
+  "chromedriver",
+  "xvfb-run"
+]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+[phases.build]
+cmds = ["echo 'Build complete'"]
+
+[start]
+cmd = "python agmarknet_scraper.py"
