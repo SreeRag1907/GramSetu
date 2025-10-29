@@ -207,7 +207,7 @@ const Chatbot = () => {
         const enhancedQuery = `${contextSummary}\n\nFarmer's question: ${textToSend}`;
 
         // Get AI response with full context
-        const aiResponse = await geminiAI.getAIResponse(enhancedQuery, context, conversationHistory);
+        const aiResponse = await geminiAI.chatWithHistory(enhancedQuery, context, conversationHistory);
         
         if (aiResponse.success && aiResponse.response) {
           aiResponseText = aiResponse.response;

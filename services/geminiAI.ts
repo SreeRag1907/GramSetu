@@ -1,4 +1,5 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+// Modern Gemini AI using the new @google/genai SDK
+import { GoogleGenAI } from "@google/genai";
 
 interface AIResponse {
   success: boolean;
@@ -30,24 +31,31 @@ interface ChatContext {
 }
 
 class GeminiAIService {
-  private genAI: GoogleGenerativeAI | null = null;
-  private model: any = null;
+  private ai: GoogleGenAI | null = null;
   private isInitialized: boolean = false;
+  private maxRetries: number = 3;
+  private retryDelay: number = 1000;
 
   constructor() {
     try {
-      // Initialize with API key from environment
-      const apiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY || 'YOUR_GEMINI_API_KEY_HERE';
+      // Initialize with API key from environment or auto-detect
+      const apiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
       
       if (apiKey && apiKey !== 'YOUR_GEMINI_API_KEY_HERE') {
-        this.genAI = new GoogleGenerativeAI(apiKey);
-        this.model = this.genAI.getGenerativeModel({ 
-          model: "gemini-1.5-flash" // Using Flash model for better quota limits
-        });
+        // Initialize with explicit API key
+        this.ai = new GoogleGenAI({ apiKey });
         this.isInitialized = true;
-        console.log('✅ Gemini Flash AI initialized successfully');
+        console.log('✅ Gemini AI (using @google/genai) initialized successfully');
       } else {
-        console.warn('⚠️ Gemini API key not provided. Using fallback responses.');
+        // Try auto-detection from environment variable GEMINI_API_KEY
+        try {
+          this.ai = new GoogleGenAI({});
+          this.isInitialized = true;
+          console.log('✅ Gemini AI initialized with auto-detected API key');
+        } catch (autoError) {
+          console.warn('⚠️ Gemini API key not found. Using fallback responses.');
+          console.log('💡 Set EXPO_PUBLIC_GEMINI_API_KEY in your .env.local file');
+        }
       }
     } catch (error) {
       console.error('❌ Failed to initialize Gemini AI:', error);
@@ -55,176 +63,283 @@ class GeminiAIService {
     }
   }
 
-  // Generate system prompt for simple, farmer-friendly responses
-  private generateSystemPrompt(context?: ChatContext): string {
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // Generate farmer persona prompt with context awareness
+  private generateFarmerPersona(context?: ChatContext): string {
     const userInfo = context?.userProfile;
     const weatherInfo = context?.weatherData;
     const marketInfo = context?.marketData;
+    const userLanguage = userInfo?.language || 'English';
+    const userLocation = userInfo?.location || 'India';
     
-    return `You are GramSetu AI, a helpful farming assistant for Indian farmers. Give SHORT, SIMPLE answers that farmers can easily understand and follow.
+    let persona = `You are Ram, a friendly 45-year-old experienced farmer from ${userLocation}. You speak like a wise, helpful farmer friend talking to another farmer.
 
-IMPORTANT GUIDELINES:
-- Keep answers under 3-4 sentences
-- Use simple Hindi/English words farmers know
-- Give ONE main action step
-- No technical jargon or complex science
-- Be practical and direct
-- Use emojis to make it friendly
+PERSONALITY:
+- Warm and encouraging tone
+- Share personal farming experiences
+- Give practical, actionable advice
+- Use simple language farmers understand
+- Keep responses 2-3 sentences max
+- Add relevant emojis to make it friendly
 
-USER PROFILE:
-${userInfo ? `
-- Name: ${userInfo.name || 'Farmer'}
-- Location: ${userInfo.location || 'India'}
-- Language: ${userInfo.language || 'English'}
-- Farm size: ${userInfo.farmSize || 'Small'} acres
-- Crops: ${userInfo.primaryCrops?.join(', ') || 'Mixed farming'}
-` : '- Basic farmer profile'}
+LANGUAGE STYLE:`;
 
-CURRENT CONDITIONS:
-${weatherInfo ? `
-- Weather: ${weatherInfo.temperature}°C, ${weatherInfo.condition}
-- Humidity: ${weatherInfo.humidity}%
-` : '- Weather data not available'}
+    // Language-specific persona
+    switch (userLanguage.toLowerCase()) {
+      case 'hindi':
+        persona += `
+- Respond in simple Hindi
+- Use farmer-friendly words like "भाई", "यार", "अरे"
+- Example: "अरे भाई, मैंने भी यह समस्या देखी है। ऐसा करो..."
+- Give practical solutions farmers can do today`;
+        break;
+        
+      case 'marathi':
+        persona += `
+- Respond in simple Marathi
+- Use words like "भाऊ", "अरे", "बघ"
+- Example: "अरे भाऊ, मला पण हीच समस्या आली होती। असं करा..."
+- Give practical solutions farmers can do today`;
+        break;
+        
+      case 'gujarati':
+        persona += `
+- Respond in simple Gujarati
+- Use words like "ભાઈ", "અરે", "જુઓ"
+- Example: "અરે ભાઈ, મને પણ આ સમસ્યા આવી હતી। આવું કરો..."
+- Give practical solutions farmers can do today`;
+        break;
+        
+      default: // English
+        persona += `
+- Respond in simple English
+- Use words like "friend", "brother", "hey"
+- Example: "Hey friend, I also had this problem. Do this..."
+- Give practical solutions farmers can do today`;
+    }
 
-${marketInfo ? `
-MARKET PRICES:
-${Object.entries(marketInfo).slice(0, 3).map(([crop, data]) => `- ${crop}: ₹${data.price}/quintal (${data.trend === 'up' ? '↗️' : data.trend === 'down' ? '↘️' : '→'})`).join('\n')}
-` : ''}
+    // Add current context
+    if (weatherInfo || marketInfo) {
+      persona += `\n\nCURRENT CONTEXT:`;
+      
+      if (weatherInfo) {
+        persona += `
+Weather: ${weatherInfo.temperature}°C, ${weatherInfo.condition}, Humidity: ${weatherInfo.humidity}%
+Give weather-specific advice when relevant.`;
+      }
+      
+      if (marketInfo) {
+        const prices = Object.entries(marketInfo).slice(0, 3).map(([crop, data]) => 
+          `${crop}: ₹${data.price}/quintal (${data.trend === 'up' ? 'Rising ↗️' : data.trend === 'down' ? 'Falling ↘️' : 'Stable →'})`
+        ).join(', ');
+        persona += `
+Market prices: ${prices}
+Give market-related advice when asked.`;
+      }
+    }
 
-RESPONSE STYLE:
-✅ GOOD: "🌾 Spray neem oil early morning. Mix 2ml per liter water. Repeat after 7 days."
-❌ BAD: "Implement integrated pest management through systematic application of organic neem-based compounds..."
-
-TOPICS I HELP WITH:
-🌱 Crop care (what to do, when to do)
-🐛 Pest problems (simple solutions)
-🌧️ Weather advice (protect crops)
-💰 Market prices (when to sell)
-🏛️ Government schemes (how to apply)
-💧 Irrigation (how much water)
-
-${userInfo?.language && userInfo.language !== 'English' ? `
-LANGUAGE: Give answers in ${userInfo.language} using simple words farmers understand.
-` : ''}
-
-Remember: Farmers need QUICK, SIMPLE solutions they can do TODAY. No long explanations!`;
+    persona += `\n\nREMEMBER: Be like a helpful farmer friend - practical, encouraging, and easy to understand!`;
+    
+    return persona;
   }
 
-  // Main method to get AI response
+  // Main method to get AI response using new SDK
   async getAIResponse(
     userQuery: string, 
     context?: ChatContext,
     conversationHistory?: Array<{ role: 'user' | 'assistant', content: string }>
   ): Promise<AIResponse> {
-    try {
-      if (!this.isInitialized || !this.model) {
-        throw new Error('Gemini AI not initialized');
-      }
-
-      // Build system prompt with context
-      const systemPrompt = this.generateSystemPrompt(context);
-      
-      // Prepare conversation for Gemini
-      let fullPrompt = systemPrompt + '\n\n';
-      
-      // Add conversation history if available (keep it short)
-      if (conversationHistory && conversationHistory.length > 0) {
-        const recentHistory = conversationHistory.slice(-4); // Only last 2 exchanges
-        recentHistory.forEach(msg => {
-          fullPrompt += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}\n\n`;
-        });
-      }
-      
-      // Add current user query
-      fullPrompt += `User: ${userQuery}\n\nAssistant: `;
-
-      // Call Gemini API
-      const result = await this.model.generateContent(fullPrompt);
-      const response = await result.response;
-      const aiResponse = response.text();
-
-      if (!aiResponse) {
-        throw new Error('No response received from AI');
-      }
-
-      return {
-        success: true,
-        response: aiResponse
-      };
-
-    } catch (error) {
-      console.error('Gemini AI Error:', error);
-      
+    if (!this.isInitialized || !this.ai) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
-        response: this.getFallbackResponse(userQuery)
+        error: 'Gemini AI not initialized',
+        response: this.getFallbackResponse(userQuery, context?.userProfile?.language)
       };
     }
+
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        // Build system prompt with farmer persona
+        const farmerPersona = this.generateFarmerPersona(context);
+        
+        // Prepare conversation with history
+        let conversation = farmerPersona + '\n\nConversation:\n';
+        
+        // Add recent conversation history (last 4 messages)
+        if (conversationHistory && conversationHistory.length > 0) {
+          const recentHistory = conversationHistory.slice(-4);
+          recentHistory.forEach(msg => {
+            conversation += `${msg.role === 'user' ? 'Farmer Friend' : 'Ram'}: ${msg.content}\n`;
+          });
+        }
+        
+        // Add current user query
+        conversation += `Farmer Friend: ${userQuery}\nRam: `;
+
+        // Call Gemini API using new SDK
+        const response = await this.ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: conversation,
+        });
+
+        if (response && response.text) {
+          return {
+            success: true,
+            response: response.text.trim()
+          };
+        } else {
+          throw new Error('No response received from Gemini AI');
+        }
+
+      } catch (error: any) {
+        console.error(`Gemini AI Error (attempt ${attempt}/${this.maxRetries}):`, error);
+        
+        // Handle specific error types
+        if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
+          return {
+            success: false,
+            error: 'API quota exceeded',
+            response: this.getFallbackResponse(userQuery, context?.userProfile?.language)
+          };
+        }
+        
+        if (attempt === this.maxRetries) {
+          return {
+            success: false,
+            error: `Failed after ${this.maxRetries} attempts: ${error.message}`,
+            response: this.getFallbackResponse(userQuery, context?.userProfile?.language)
+          };
+        }
+
+        // Wait before retrying
+        await this.sleep(this.retryDelay * attempt);
+      }
+    }
+
+    return {
+      success: false,
+      error: 'Max retries exceeded',
+      response: this.getFallbackResponse(userQuery, context?.userProfile?.language)
+    };
   }
 
-  // Simple fallback responses when AI fails
-  private getFallbackResponse(query: string): string {
+  // Enhanced chat function for seamless conversation
+  async chat(message: string, context?: ChatContext): Promise<AIResponse> {
+    return this.getAIResponse(message, context);
+  }
+
+  // Chat with conversation history for better context
+  async chatWithHistory(
+    userQuery: string, 
+    context?: ChatContext,
+    conversationHistory?: Array<{ role: 'user' | 'assistant', content: string }>
+  ): Promise<AIResponse> {
+    return this.getAIResponse(userQuery, context, conversationHistory);
+  }
+
+  // Enhanced fallback responses with language support
+  private getFallbackResponse(query: string, language?: string): string {
     const lowerQuery = query.toLowerCase();
     
-    if (lowerQuery.includes('weather')) {
-      return "🌤️ Check weather section in app. If hot (>35°C), water crops early morning. If rain coming, avoid fertilizer today.";
+    // Weather related queries
+    if (lowerQuery.includes('weather') || lowerQuery.includes('मौसम') || lowerQuery.includes('हवामान')) {
+      if (language === 'hindi') {
+        return "🌤️ अरे भाई राम यहाँ! मौसम के लिए मैं कहता हूं - बारिश से पहले खेत में पानी निकासी का इंतजाम करो। धूप तेज हो तो शाम को पानी देना! 🌧️☀️";
+      }
+      if (language === 'marathi') {
+        return "🌤️ अरे भाऊ रामराव बोलतो! हवामानासाठी सांगतो - पावसाआधी शेतात पाण्याचा निचरा व्यवस्थित करा। उन्हाळा जास्त असेल तर संध्याकाळी पाणी द्या! 🌧️☀️";
+      }
+      return "🌤️ Hey friend, Ram here! For weather - arrange drainage before rains. If very hot, water in evening! 🌧️☀️";
     }
     
-    if (lowerQuery.includes('price') || lowerQuery.includes('market')) {
-      return "💰 Check marketplace section for prices. Sell when price is good and you need money. Store if you can wait.";
+    // Pest control queries
+    if (lowerQuery.includes('pest') || lowerQuery.includes('कीट') || lowerQuery.includes('insects')) {
+      if (language === 'hindi') {
+        return "🐛 भाई, कीटों के लिए मेरा नुस्खा - नीम का तेल स्प्रे करो सुबह-सुबह। 5ml प्रति लीटर पानी में। हफ्ते में दो बार! 🌿";
+      }
+      if (language === 'marathi') {
+        return "🐛 भाऊ, किड्यांसाठी माझा उपाय - कडुलिंबाचे तेल सकाळी फवारा। 5ml प्रति लिटर पाण्यात। आठवड्यातून दोनदा! 🌿";
+      }
+      return "🐛 Friend, for pests my remedy - spray neem oil early morning. 5ml per liter water. Twice a week! 🌿";
     }
     
-    if (lowerQuery.includes('scheme') || lowerQuery.includes('government')) {
-      return "🏛️ Check schemes section. Apply for PM-KISAN if you have 2 acres or less. Keep documents ready.";
+    // Market/price queries
+    if (lowerQuery.includes('market') || lowerQuery.includes('price') || lowerQuery.includes('बाजार') || lowerQuery.includes('भाव')) {
+      if (language === 'hindi') {
+        return "💰 यार, बाजार के लिए राम का सुझाव - 3-4 मंडियों के भाव देखो। त्योहार के समय अच्छे दाम मिलते हैं। स्टोरेज हो तो थोड़ा इंतजार! 📈";
+      }
+      if (language === 'marathi') {
+        return "💰 यार, बाजारासाठी रामरावाचा सल्ला - 3-4 मंडींचे भाव बघा। सणासुदीच्या वेळी चांगले दर मिळतात। स्टोरेज असेल तर थोडी वाट! 📈";
+      }
+      return "💰 Friend, for market Ram's advice - check 3-4 market prices. Good rates during festivals. If storage available, wait a bit! 📈";
     }
     
-    if (lowerQuery.includes('pest') || lowerQuery.includes('insect')) {
-      return "🐛 Spray neem oil early morning. Mix 5ml per liter water. If severe, contact agriculture officer.";
+    // Default greeting with personality
+    if (language === 'hindi') {
+      return "🤗 अरे भाई, राम किसान यहाँ! 25 साल का तजुर्बा है। बोलो क्या समस्या है? खेती, मौसम, कीट, बाजार - कुछ भी पूछो! 🌾👨‍🌾";
     }
-    
-    if (lowerQuery.includes('fertilizer') || lowerQuery.includes('manure')) {
-      return "🌱 Apply compost first. For chemical fertilizer, use half dose and see results. Test soil if possible.";
+    if (language === 'marathi') {
+      return "� अरे भाऊ, रामराव शेतकरी येथे! 25 वर्षांचा अनुभव आहे। काय अडचण आहे सांगा? शेती, हवामान, किडे, बाजार - काहीही विचारा! 🌾👨‍🌾";
     }
-    
-    return "🤖 I'm here to help! Ask simple questions about: crops, pests, weather, prices, or government schemes.";
+    return "🤗 Hey friend, Ram Farmer here! 25 years experience. What's the problem? Farming, weather, pests, market - ask anything! 🌾👨‍🌾";
   }
 
   // Quick response for common queries
   getQuickResponse(queryType: string, context?: ChatContext): string {
+    const language = context?.userProfile?.language;
+    
     switch (queryType) {
       case 'weather_advice':
         return context?.weatherData ? 
-          `🌤️ Today: ${context.weatherData.temperature}°C, ${context.weatherData.condition}. ${context.weatherData.temperature > 35 ? 'Too hot - water crops early morning.' : context.weatherData.temperature < 10 ? 'Cold - protect crops at night.' : 'Good weather for farming.'}` :
-          "🌤️ Check weather section for today's conditions.";
+          `🌤️ Today: ${context.weatherData.temperature}°C, ${context.weatherData.condition}. ${context.weatherData.temperature > 35 ? 'Too hot - water early morning! 🌅' : context.weatherData.temperature < 10 ? 'Cold - protect crops! 🌙' : 'Good farming weather! 😊'}` :
+          "🌤️ Check weather section for today's farming advice.";
           
       case 'market_prices':
-        return "💰 Check marketplace section. Sell when prices are high and you need money.";
+        return language === 'hindi' ? 
+          "💰 बाजार के भाव चेक करो। अच्छे दाम पर बेचना!" :
+          "💰 Check market prices. Sell when rates are good!";
         
       case 'government_schemes':
-        return "🏛️ Check schemes section. Apply for PM-KISAN, crop insurance, soil health card.";
+        return language === 'hindi' ?
+          "🏛️ स्कीम सेक्शन देखो। PM-KISAN के लिए अप्लाई करो!" :
+          "🏛️ Check schemes section. Apply for PM-KISAN!";
         
       case 'pest_control':
-        return "🐛 Spray neem oil early morning. Mix 5ml per liter water. Repeat after 1 week.";
+        return language === 'hindi' ?
+          "🐛 नीम का तेल स्प्रे करो। 5ml प्रति लीटर। हफ्ते में दो बार!" :
+          "🐛 Spray neem oil. 5ml per liter. Twice a week!";
         
       default:
-        return "🤖 Ask me about: crops, pests, weather, prices, or government schemes. Keep questions simple!";
+        return language === 'hindi' ?
+          "🤖 पूछो यार: फसल, कीट, मौसम, भाव! सब सिखाऊंगा! 🌾" :
+          "🤖 Ask me: crops, pests, weather, prices! I'll help! 🌾";
     }
   }
 
-  // Test API connection
+  // Test API connection using new SDK
   async testConnection(): Promise<boolean> {
     try {
-      if (!this.isInitialized || !this.model) {
+      if (!this.isInitialized || !this.ai) {
+        console.log('Gemini AI not initialized, using fallback responses');
         return false;
       }
 
-      const result = await this.model.generateContent("Say hello in 3 words");
-      const response = await result.response;
+      const response = await this.ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: "Say hello",
+      });
       
-      return !!response.text();
-    } catch (error) {
-      console.error('Gemini API connection test failed:', error);
+      if (response && response.text) {
+        console.log(`✅ Gemini AI connection successful`);
+        return true;
+      }
+      
+      return false;
+    } catch (error: any) {
+      console.error('Gemini AI connection test failed:', error);
       return false;
     }
   }
