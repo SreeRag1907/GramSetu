@@ -82,12 +82,71 @@
     }
   },
   "weather": {
+    "title": "मौसम और जलवायु",
     "temperature": "तापमान",
     "humidity": "नमी", 
     "windSpeed": "हवा की गति",
     "rainfall": "वर्षा",
-    "forecast": "पूर्वानुमान",
-    "advisory": "सलाह"
+    "forecastLabel": "पूर्वानुमान",
+    "advisoryLabel": "सलाह",
+    "pressure": "दबाव",
+    "visibility": "दृश्यता",
+    "loading": "मौसम डेटा लोड हो रहा है...",
+    "errorOffline": "ऑफलाइन डेटा उपयोग में। लाइव अपडेट के लिए इंटरनेट कनेक्शन जांचें।",
+    "errorFailed": "लाइव मौसम डेटा लोड करने में विफल। नमूना डेटा दिखाया जा रहा है।",
+    "yourLocation": "आपका स्थान",
+    "tabs": {
+      "current": "वर्तमान",
+      "forecast": "पूर्वानुमान",
+      "suggestions": "AI सुझाव",
+      "historical": "ऐतिहासिक"
+    },
+    "current": {
+      "quickInsights": "त्वरित जानकारी",
+      "temperatureIdeal": "तापमान अधिकांश फसल गतिविधियों के लिए आदर्श है। खेत के काम के लिए अच्छी स्थितियां।",
+      "humidityModerate": "मध्यम नमी स्तर। संवेदनशील फसलों में फंगल रोगों की निगरानी करें।"
+    },
+    "forecast": {
+      "sevenDay": "7-दिवसीय पूर्वानुमान",
+      "rainChance": "बारिश की संभावना"
+    },
+    "advisories": {
+      "personalized": "व्यक्तिगत सलाह",
+      "priority": {
+        "high": "उच्च",
+        "medium": "मध्यम",
+        "low": "निम्न"
+      }
+    },
+    "historical": {
+      "title": "ऐतिहासिक डेटा",
+      "rainfallPattern": "वर्षा पैटर्न (पिछले 30 दिन)",
+      "temperatureTrends": "तापमान रुझान (पिछले 30 दिन)",
+      "humidityLevels": "नमी स्तर (पिछले 30 दिन)",
+      "rainfallChart": "वर्षा चार्ट",
+      "temperatureChart": "तापमान चार्ट",
+      "humidityChart": "नमी चार्ट",
+      "totalRainfall": "कुल",
+      "averageRainfall": "औसत",
+      "avgHigh": "औसत उच्च",
+      "avgLow": "औसत निम्न",
+      "average": "औसत",
+      "range": "सीमा",
+      "lastYearComparison": "पिछले वर्ष से तुलना",
+      "rainfallComparison": "पिछले वर्ष से अधिक",
+      "rainfallComparisonNeg": "पिछले वर्ष से कम",
+      "temperatureComparison": "पिछले वर्ष से गर्म",
+      "temperatureComparisonNeg": "पिछले वर्ष से ठंडा"
+    },
+    "units": {
+      "celsius": "°से",
+      "percentage": "%",
+      "kmh": "किमी/घंटा",
+      "hpa": "hPa",
+      "km": "किमी",
+      "mm": "मिमी",
+      "perDay": "/दिन"
+    }
   },
   "marketplace": {
     "title": "बाजार",

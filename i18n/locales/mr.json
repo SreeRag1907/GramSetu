@@ -80,12 +80,71 @@
     }
   },
   "weather": {
+    "title": "हवामान आणि जलवायु",
     "temperature": "तापमान",
     "humidity": "आर्द्रता", 
     "windSpeed": "वाऱ्याचा वेग",
     "rainfall": "पाऊस",
-    "forecast": "अंदाज",
-    "advisory": "सल्ला"
+    "forecastLabel": "अंदाज",
+    "advisoryLabel": "सल्ला",
+    "pressure": "दाब",
+    "visibility": "दृश्यता",
+    "loading": "हवामान डेटा लोड होत आहे...",
+    "errorOffline": "ऑफलाइन डेटा वापरत आहे. थेट अपडेटसाठी इंटरनेट कनेक्शन तपासा।",
+    "errorFailed": "थेट हवामान डेटा लोड करण्यात अयशस्वी. नमुना डेटा दर्शवित आहे।",
+    "yourLocation": "तुमचे ठिकाण",
+    "tabs": {
+      "current": "सध्याचे",
+      "forecast": "अंदाज",
+      "suggestions": "AI सल्ले",
+      "historical": "ऐतिहासिक"
+    },
+    "current": {
+      "quickInsights": "त्वरित माहिती",
+      "temperatureIdeal": "तापमान बहुतेक पीक क्रियाकलापांसाठी आदर्श आहे. शेतातील कामासाठी चांगली परिस्थिती.",
+      "humidityModerate": "मध्यम आर्द्रता पातळी. संवेदनशील पिकांमध्ये बुरशीजन्य रोगांचे निरीक्षण करा."
+    },
+    "forecast": {
+      "sevenDay": "7-दिवसांचा अंदाज",
+      "rainChance": "पावसाची शक्यता"
+    },
+    "advisories": {
+      "personalized": "वैयक्तिक सल्ले",
+      "priority": {
+        "high": "उच्च",
+        "medium": "मध्यम",
+        "low": "कमी"
+      }
+    },
+    "historical": {
+      "title": "ऐतिहासिक डेटा",
+      "rainfallPattern": "पावसाचा नमुना (मागील 30 दिवस)",
+      "temperatureTrends": "तापमान प्रवृत्ती (मागील 30 दिवस)",
+      "humidityLevels": "आर्द्रता पातळी (मागील 30 दिवस)",
+      "rainfallChart": "पावसाचा तक्ता",
+      "temperatureChart": "तापमान तक्ता",
+      "humidityChart": "आर्द्रता तक्ता",
+      "totalRainfall": "एकूण",
+      "averageRainfall": "सरासरी",
+      "avgHigh": "सरासरी उच्च",
+      "avgLow": "सरासरी कमी",
+      "average": "सरासरी",
+      "range": "श्रेणी",
+      "lastYearComparison": "मागील वर्षाशी तुलना",
+      "rainfallComparison": "मागील वर्षापेक्षा जास्त",
+      "rainfallComparisonNeg": "मागील वर्षापेक्षा कमी",
+      "temperatureComparison": "मागील वर्षापेक्षा उष्ण",
+      "temperatureComparisonNeg": "मागील वर्षापेक्षा थंड"
+    },
+    "units": {
+      "celsius": "°से",
+      "percentage": "%",
+      "kmh": "किमी/तास",
+      "hpa": "hPa",
+      "km": "किमी",
+      "mm": "मिमी",
+      "perDay": "/दिवस"
+    }
   },
   "marketplace": {
     "title": "बाजारपेठ",

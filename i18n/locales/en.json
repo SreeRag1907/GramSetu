@@ -82,12 +82,71 @@
     }
   },
   "weather": {
+    "title": "Weather & Climate",
     "temperature": "Temperature",
     "humidity": "Humidity", 
     "windSpeed": "Wind Speed",
     "rainfall": "Rainfall",
-    "forecast": "Forecast",
-    "advisory": "Advisory"
+    "forecastLabel": "Forecast",
+    "advisoryLabel": "Advisory",
+    "pressure": "Pressure",
+    "visibility": "Visibility",
+    "loading": "Loading weather data...",
+    "errorOffline": "Using offline data. Check internet connection for live updates.",
+    "errorFailed": "Failed to load live weather data. Showing sample data.",
+    "yourLocation": "Your Location",
+    "tabs": {
+      "current": "Current",
+      "forecast": "Forecast",
+      "suggestions": "AI Suggestions",
+      "historical": "Historical"
+    },
+    "current": {
+      "quickInsights": "Quick Insights",
+      "temperatureIdeal": "Temperature is ideal for most crop activities. Good conditions for fieldwork.",
+      "humidityModerate": "Moderate humidity levels. Monitor for fungal diseases in sensitive crops."
+    },
+    "forecast": {
+      "sevenDay": "7-Day Forecast",
+      "rainChance": "Rain Chance"
+    },
+    "advisories": {
+      "personalized": "Personalized Advisories",
+      "priority": {
+        "high": "HIGH",
+        "medium": "MEDIUM",
+        "low": "LOW"
+      }
+    },
+    "historical": {
+      "title": "Historical Data",
+      "rainfallPattern": "Rainfall Pattern (Last 30 Days)",
+      "temperatureTrends": "Temperature Trends (Last 30 Days)",
+      "humidityLevels": "Humidity Levels (Last 30 Days)",
+      "rainfallChart": "Rainfall Chart",
+      "temperatureChart": "Temperature Chart",
+      "humidityChart": "Humidity Chart",
+      "totalRainfall": "Total",
+      "averageRainfall": "Average",
+      "avgHigh": "Avg High",
+      "avgLow": "Avg Low",
+      "average": "Average",
+      "range": "Range",
+      "lastYearComparison": "Last Year Comparison",
+      "rainfallComparison": "more than last year",
+      "rainfallComparisonNeg": "less than last year",
+      "temperatureComparison": "warmer than last year",
+      "temperatureComparisonNeg": "cooler than last year"
+    },
+    "units": {
+      "celsius": "°C",
+      "percentage": "%",
+      "kmh": "km/h",
+      "hpa": "hPa",
+      "km": "km",
+      "mm": "mm",
+      "perDay": "/day"
+    }
   },
   "marketplace": {
     "title": "Marketplace",
