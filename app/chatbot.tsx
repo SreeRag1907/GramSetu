@@ -21,7 +21,7 @@ import {
   getWelcomeMessage,
   getAIResponse,
 } from '../data/chatbot-data';
-import { geminiAI, ChatContext } from '../services/geminiAI';
+import { multiAI, ChatContext, ConversationMessage } from '../services/multiAI';
 import { PromptContextBuilder, quickResponseTemplates } from '../data/ai-prompts';
 import { defaultWeatherData } from '../data/dashboard-data';
 import { dataIntegration } from '../services/dataIntegration';
@@ -81,7 +81,7 @@ interface IntegratedFarmData {
 }
 
 const Chatbot = () => {
-  const { t, currentLanguage } = useI18n();
+  const { t, currentLanguage, changeLanguage } = useI18n();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -89,17 +89,28 @@ const Chatbot = () => {
   const [userProfile, setUserProfile] = useState<any>({});
   const [weatherData, setWeatherData] = useState<any>(defaultWeatherData);
   const [farmData, setFarmData] = useState<IntegratedFarmData | null>(null);
-  const [conversationHistory, setConversationHistory] = useState<Array<{ role: 'user' | 'assistant', content: string }>>([]);
-  const [aiEnabled, setAiEnabled] = useState(true);
+  const [aiProvider, setAiProvider] = useState<string>('local'); // Track which AI is being used
+  const [detectedLanguage, setDetectedLanguage] = useState<string>(currentLanguage || 'en');
   const scrollViewRef = useRef<ScrollView>(null);
 
 
 
   useEffect(() => {
-    loadFarmData();
-    testAIConnection();
-    initializeChat();
+    const initialize = async () => {
+      loadFarmData(); // Run in parallel, don't wait
+      const hasHistory = await loadConversationHistory();
+      // Only initialize chat if no history exists
+      if (!hasHistory) {
+        initializeChat();
+      }
+    };
+    initialize();
   }, []);
+
+  // Listen to language changes from settings
+  useEffect(() => {
+    setDetectedLanguage(currentLanguage || 'en');
+  }, [currentLanguage]);
 
   const loadFarmData = async () => {
     try {
@@ -108,38 +119,95 @@ const Chatbot = () => {
       setUserName(integrated.userProfile.name);
       setUserProfile(integrated.userProfile);
       setWeatherData(integrated.weatherData.current);
+      console.log('✅ Farm data loaded:', integrated.userProfile.name);
     } catch (error) {
       console.error('Error loading farm data:', error);
     }
   };
 
-  const testAIConnection = async () => {
-    try {
-      const isConnected = await geminiAI.testConnection();
-      setAiEnabled(isConnected);
-      
-      if (!isConnected) {
-        console.warn('Gemini AI not available, using fallback responses');
-      }
-    } catch (error) {
-      console.error('AI connection test failed:', error);
-      setAiEnabled(false);
+  const loadConversationHistory = async (): Promise<boolean> => {
+    // Load persisted conversation from multiAI service
+    const history = multiAI.getConversationHistory();
+    
+    // Convert to ChatMessage format for display
+    const chatMessages: ChatMessage[] = history.map((msg, index) => ({
+      id: `history-${index}`,
+      text: msg.content,
+      isUser: msg.role === 'user',
+      timestamp: new Date(msg.timestamp),
+      category: msg.role === 'user' ? 'User' : 'Response',
+    }));
+
+    if (chatMessages.length > 0) {
+      setMessages(chatMessages);
+      console.log(`📜 Loaded ${chatMessages.length} messages from history`);
+      return true; // Has history
     }
+    
+    return false; // No history
   };
 
   const initializeChat = () => {
-    const language = currentLanguage || 'en';
-    let welcomeText = quickResponseTemplates.greeting[language as keyof typeof quickResponseTemplates.greeting] || 
-                     quickResponseTemplates.greeting.en;
+    const language = detectedLanguage || currentLanguage || 'en';
     
-    // Add personalized context if farm data is available
+    // Generate personalized greeting
+    let welcomeText = '';
+    const farmerName = userName || farmData?.userProfile.name || 'Friend';
+    const location = farmData?.userProfile.location || 'your area';
+    const temp = weatherData?.temperature || farmData?.weatherData.current.temperature;
+    const humidity = weatherData?.humidity || farmData?.weatherData.current.humidity;
+    const condition = weatherData?.condition || farmData?.weatherData.current.condition || 'pleasant';
+    
+    // Multilingual personalized greetings
+    if (language === 'hi') {
+      welcomeText = `🙏 नमस्ते ${farmerName} जी!\n\n`;
+      welcomeText += `मैं आपका AI कृषि सहायक हूँ। ${location} में आज मौसम ${condition} है `;
+      if (temp) welcomeText += `(${temp}°C, ${humidity}% नमी)`;
+      welcomeText += `\n\n`;
+      
+      if (temp && temp > 35) {
+        welcomeText += `🌡️ आज बहुत गर्मी है! शाम को ही सिंचाई करें।\n\n`;
+      } else if (humidity && humidity > 75) {
+        welcomeText += `💧 नमी ज्यादा है! फसलों में फंगल रोग का ध्यान रखें।\n\n`;
+      }
+      
+      welcomeText += `आप कैसे हैं? खेती के बारे में कुछ पूछना चाहते हैं? मैं मदद के लिए हाजिर हूँ! 🌾`;
+    } else if (language === 'mr') {
+      welcomeText = `🙏 नमस्कार ${farmerName}!\n\n`;
+      welcomeText += `मी तुमचा AI शेती सहाय्यक आहे। ${location} मध्ये आज हवामान ${condition} आहे `;
+      if (temp) welcomeText += `(${temp}°C, ${humidity}% आर्द्रता)`;
+      welcomeText += `\n\n`;
+      
+      if (temp && temp > 35) {
+        welcomeText += `🌡️ आज खूप गरम आहे! संध्याकाळीच सिंचन करा।\n\n`;
+      } else if (humidity && humidity > 75) {
+        welcomeText += `💧 आर्द्रता जास्त आहे! पिकांमध्ये बुरशीजन्य रोग टाळा।\n\n`;
+      }
+      
+      welcomeText += `तुम्ही कसे आहात? शेतीबद्दल काही विचारायचं आहे का? मी मदतीसाठी उपलब्ध आहे! 🌾`;
+    } else {
+      welcomeText = `👋 Hello ${farmerName}!\n\n`;
+      welcomeText += `I'm your AI Farming Assistant. Today's weather in ${location} is ${condition} `;
+      if (temp) welcomeText += `(${temp}°C, ${humidity}% humidity)`;
+      welcomeText += `\n\n`;
+      
+      if (temp && temp > 35) {
+        welcomeText += `🌡️ It's very hot today! Water your crops in the evening.\n\n`;
+      } else if (humidity && humidity > 75) {
+        welcomeText += `💧 High humidity! Watch out for fungal diseases in crops.\n\n`;
+      }
+      
+      welcomeText += `How are you doing? Want to ask anything about farming? I'm here to help! 🌾`;
+    }
+    
+    // Add farm-specific insights if available
     if (farmData) {
       const analysis = dataIntegration.analyzeFarmStatus(farmData);
       if (analysis.urgentIssues.length > 0) {
-        welcomeText += `\n\n⚠️ Urgent: ${analysis.urgentIssues[0]}`;
+        welcomeText += `\n\n⚠️ ${language === 'hi' ? 'जरूरी' : language === 'mr' ? 'महत्त्वाचे' : 'Urgent'}: ${analysis.urgentIssues[0]}`;
       }
       if (analysis.opportunities.length > 0) {
-        welcomeText += `\n\n💡 Opportunity: ${analysis.opportunities[0]}`;
+        welcomeText += `\n\n💡 ${language === 'hi' ? 'अवसर' : language === 'mr' ? 'संधी' : 'Opportunity'}: ${analysis.opportunities[0]}`;
       }
     }
     
@@ -154,11 +222,64 @@ const Chatbot = () => {
     setMessages([welcomeMessage]);
   };
 
+  const clearChatHistory = async () => {
+    const language = detectedLanguage || currentLanguage || 'en';
+    const title = language === 'hi' ? 'चैट हिस्ट्री साफ़ करें' : language === 'mr' ? 'चॅट इतिहास साफ करा' : 'Clear Chat History';
+    const message = language === 'hi' 
+      ? 'क्या आप सभी बातचीत का इतिहास हटाना चाहते हैं? इसे पूर्ववत नहीं किया जा सकता।'
+      : language === 'mr'
+      ? 'तुम्हाला सर्व संभाषण इतिहास साफ करायचा आहे का? हे पूर्ववत केले जाऊ शकत नाही.'
+      : 'Are you sure you want to clear all conversation history? This cannot be undone.';
+    const cancelText = language === 'hi' ? 'रद्द करें' : language === 'mr' ? 'रद्द करा' : 'Cancel';
+    const clearText = language === 'hi' ? 'साफ़ करें' : language === 'mr' ? 'साफ करा' : 'Clear';
+    
+    Alert.alert(
+      title,
+      message,
+      [
+        { text: cancelText, style: 'cancel' },
+        {
+          text: clearText,
+          style: 'destructive',
+          onPress: async () => {
+            await multiAI.clearHistory();
+            setMessages([]);
+            initializeChat();
+            console.log('🗑️ Chat history cleared');
+          }
+        }
+      ]
+    );
+  };
 
+
+
+  // Detect language from user input
+  const detectLanguage = (text: string): string => {
+    // Hindi detection - Devanagari script
+    if (/[\u0900-\u097F]/.test(text)) return 'hi';
+    // Marathi detection - Devanagari script (same as Hindi, but check for Marathi-specific words)
+    if (/[\u0900-\u097F]/.test(text) && /(?:काय|आहे|मला|तुम्ही|आमचे)/i.test(text)) return 'mr';
+    // Bengali detection
+    if (/[\u0980-\u09FF]/.test(text)) return 'bn';
+    // Gujarati detection
+    if (/[\u0A80-\u0AFF]/.test(text)) return 'gu';
+    // Tamil detection
+    if (/[\u0B80-\u0BFF]/.test(text)) return 'ta';
+    // Default to current language or English
+    return currentLanguage || 'en';
+  };
 
   const sendMessage = async (messageText?: string) => {
     const textToSend = messageText || inputText.trim();
     if (!textToSend) return;
+
+    // Detect language from user input
+    const inputLanguage = detectLanguage(textToSend);
+    if (inputLanguage !== detectedLanguage) {
+      setDetectedLanguage(inputLanguage);
+      console.log(`🌐 Language detected: ${inputLanguage}`);
+    }
 
     // Add user message
     const userMessage: ChatMessage = {
@@ -173,51 +294,44 @@ const Chatbot = () => {
     setInputText('');
     setIsTyping(true);
 
-    // Update conversation history
-    setConversationHistory(prev => [...prev, { role: 'user', content: textToSend }]);
+    // Show thinking animation for 2 seconds
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     try {
-      let aiResponseText = '';
-
-      if (aiEnabled && farmData) {
-        // Build comprehensive context for AI
-        const marketDataFormatted = Object.entries(farmData.marketData).reduce((acc, [crop, data]: [string, any]) => {
+      // Build comprehensive context for AI with detected language
+      const context: ChatContext = {
+        userProfile: farmData ? {
+          name: farmData.userProfile.name,
+          location: farmData.userProfile.location,
+          language: detectedLanguage, // Use detected language
+          farmSize: farmData.userProfile.farmSize,
+          primaryCrops: farmData.userProfile.primaryCrops,
+        } : {
+          language: detectedLanguage, // Use detected language
+        },
+        weatherData: farmData ? farmData.weatherData.current : weatherData,
+        marketData: farmData ? Object.entries(farmData.marketData).reduce((acc, [crop, data]: [string, any]) => {
           acc[crop] = {
             price: data.currentPrice,
             trend: data.trend
           };
           return acc;
-        }, {} as { [crop: string]: { price: number; trend: 'up' | 'down' | 'stable' } });
+        }, {} as { [crop: string]: { price: number; trend: 'up' | 'down' | 'stable' } }) : undefined,
+        currentSeason: getCurrentSeason(),
+      };
 
-        const context: ChatContext = {
-          userProfile: {
-            name: farmData.userProfile.name,
-            location: farmData.userProfile.location,
-            language: farmData.userProfile.language,
-            farmSize: farmData.userProfile.farmSize,
-            primaryCrops: farmData.userProfile.primaryCrops,
-          },
-          weatherData: farmData.weatherData.current,
-          marketData: marketDataFormatted,
-          currentSeason: getCurrentSeason(),
-        };
-
-        // Enhanced prompt with farm context
-        const contextSummary = dataIntegration.generateContextSummary(farmData);
-        const enhancedQuery = `${contextSummary}\n\nFarmer's question: ${textToSend}`;
-
-        // Get AI response with full context
-        const aiResponse = await geminiAI.chatWithHistory(enhancedQuery, context, conversationHistory);
-        
-        if (aiResponse.success && aiResponse.response) {
-          aiResponseText = aiResponse.response;
-        } else {
-          // Fallback to enhanced local responses with farm context
-          aiResponseText = getEnhancedLocalResponse(textToSend, farmData);
-        }
+      // Get AI response using multiAI (language instruction is added internally)
+      const aiResponse = await multiAI.chat(textToSend, context);
+      
+      let aiResponseText = '';
+      if (aiResponse.success && aiResponse.response) {
+        aiResponseText = aiResponse.response;
+        setAiProvider(aiResponse.provider || 'local');
+        console.log(`✅ Response from: ${aiResponse.provider}`);
       } else {
-        // Use local AI responses
+        // This should never happen as multiAI always returns a response
         aiResponseText = getAIResponse(textToSend);
+        setAiProvider('fallback');
       }
 
       // Add AI response
@@ -230,10 +344,6 @@ const Chatbot = () => {
       };
 
       setMessages(prev => [...prev, aiMessage]);
-      
-      // Update conversation history
-      setConversationHistory(prev => [...prev, { role: 'assistant', content: aiResponseText }]);
-      
       setIsTyping(false);
 
     } catch (error) {
@@ -261,38 +371,22 @@ const Chatbot = () => {
     return 'summer';
   };
 
-  const getEnhancedLocalResponse = (query: string, farmData: IntegratedFarmData): string => {
-    const lowerQuery = query.toLowerCase();
-    
-    // Crop-specific advice
-    if (lowerQuery.includes('crop') || lowerQuery.includes('plant')) {
-      const currentCrops = farmData.currentCrops.map(c => c.cropName).join(', ');
-      return `🌾 Based on your current crops (${currentCrops}), here's what I recommend:\n\n${getAIResponse(query)}\n\nFor personalized advice specific to your ${farmData.userProfile.farmSize} acre farm in ${farmData.userProfile.location}, consider the current ${farmData.weatherData.current.condition} weather conditions.`;
+  const getProviderIcon = () => {
+    switch (aiProvider) {
+      case 'groq': return '⚡'; // Fast Groq AI
+      case 'huggingface': return '🤗'; // Hugging Face
+      case 'local': return '🧠'; // Smart Local AI
+      default: return '🤖'; // Generic AI
     }
-    
-    // Weather-based advice
-    if (lowerQuery.includes('weather')) {
-      const weather = farmData.weatherData.current;
-      return `🌤️ Current conditions in ${farmData.userProfile.location}:\n• Temperature: ${weather.temperature}°C\n• Humidity: ${weather.humidity}%\n• Condition: ${weather.condition}\n\n${getAIResponse(query)}`;
+  };
+
+  const getProviderName = () => {
+    switch (aiProvider) {
+      case 'groq': return 'Groq AI (Ultra Fast)';
+      case 'huggingface': return 'Hugging Face AI';
+      case 'local': return 'Local Smart AI';
+      default: return 'AI Assistant';
     }
-    
-    // Market advice
-    if (lowerQuery.includes('price') || lowerQuery.includes('market')) {
-      const marketCrops = Object.keys(farmData.marketData);
-      if (marketCrops.length > 0) {
-        return `💰 Market information for your crops:\n${Object.entries(farmData.marketData).map(([crop, data]: [string, any]) => 
-          `• ${crop}: ₹${data.currentPrice}/quintal (${data.trend === 'up' ? '↗️' : data.trend === 'down' ? '↘️' : '→'} ${data.trend})`
-        ).join('\n')}\n\n${getAIResponse(query)}`;
-      }
-    }
-    
-    // Scheme advice
-    if (lowerQuery.includes('scheme') || lowerQuery.includes('government')) {
-      const eligibleSchemes = farmData.schemes.eligible.length;
-      return `🏛️ You're eligible for ${eligibleSchemes} government schemes based on your profile (${farmData.userProfile.farmSize} acres, ${farmData.userProfile.primaryCrops.join(', ')}).\n\n${getAIResponse(query)}`;
-    }
-    
-    return getAIResponse(query);
   };
 
   const handleQuickQuery = (query: string) => {
@@ -312,17 +406,24 @@ const Chatbot = () => {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButton}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('modules.aiAssistant')}</Text>
-        <TouchableOpacity onPress={() => Alert.alert(
-          t('common.help') || 'Help', 
-          aiEnabled 
-            ? '🧠 Gemini Pro AI-powered assistant ready! I provide advanced agricultural consulting with deep expertise in crop science, market analysis, and precision farming. Ask me anything!'
-            : 'Using offline mode. Ask me about farming, and I\'ll provide helpful guidance based on agricultural best practices.'
-        )}>
-          <Text style={[styles.helpButton, !aiEnabled && styles.offlineIndicator]}>
-            {aiEnabled ? '�' : '📱'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>{t('modules.aiAssistant')}</Text>
+          <Text style={styles.headerSubtitle}>{getProviderIcon()} {getProviderName()}</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity 
+            onPress={clearChatHistory}
+            style={styles.clearButton}
+          >
+            <Text style={styles.clearButtonText}>🗑️</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Alert.alert(
+            'AI Assistant Info',
+            `${getProviderIcon()} Currently using: ${getProviderName()}\n\n✅ Multi-AI System:\n• Primary: Groq AI (super fast)\n• Backup: Hugging Face\n• Fallback: Smart Local AI\n\n💬 Conversation History:\n• ${messages.length} messages in current chat\n• Auto-saves every message\n• Persists across app restarts\n\n📱 Works offline with local AI!`
+          )}>
+            <Text style={styles.helpButton}>{getProviderIcon()}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {messages.length === 1 && (
@@ -377,7 +478,14 @@ const Chatbot = () => {
         {isTyping && (
           <View style={styles.typingContainer}>
             <View style={styles.typingBubble}>
-              <Text style={styles.typingText}>🤖 AI is thinking...</Text>
+              <View style={styles.typingContent}>
+                <View style={styles.typingDots}>
+                  <View style={[styles.dot, styles.dot1]} />
+                  <View style={[styles.dot, styles.dot2]} />
+                  <View style={[styles.dot, styles.dot3]} />
+                </View>
+                <Text style={styles.typingText}>{getProviderIcon()} सोच रहा हूँ... / Thinking...</Text>
+              </View>
             </View>
           </View>
         )}
@@ -417,6 +525,32 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 50,
   },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerSubtitle: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  clearButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearButtonText: {
+    fontSize: 14,
+  },
   backButton: {
     fontSize: 24,
     color: 'white',
@@ -428,7 +562,7 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   helpButton: {
-    fontSize: 20,
+    fontSize: 18,
     color: 'white',
     fontWeight: 'bold',
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -538,6 +672,30 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 5,
     padding: 12,
   },
+  typingContent: {
+    flexDirection: 'column',
+    gap: 8,
+  },
+  typingDots: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF9800',
+  },
+  dot1: {
+    opacity: 0.4,
+  },
+  dot2: {
+    opacity: 0.7,
+  },
+  dot3: {
+    opacity: 1,
+  },
   typingText: {
     color: '#666',
     fontSize: 14,
@@ -578,9 +736,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  offlineIndicator: {
-    backgroundColor: '#FF6B6B',
   },
 });
 

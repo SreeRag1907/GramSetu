@@ -3,7 +3,7 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
-import { getAnalytics } from 'firebase/analytics';
+import { Platform } from 'react-native';
 
 // Firebase config using environment variables
 const firebaseConfig = {
@@ -23,6 +23,9 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
-export const analytics = getAnalytics(app);
+
+// Analytics only works on web, not React Native
+// Commenting out to prevent errors on mobile
+export const analytics = null; // getAnalytics(app) only works on web
 
 export default app;
