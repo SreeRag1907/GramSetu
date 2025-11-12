@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,13 @@ import {
 import { getLatestScrapedMarketData, agmarknetScraper } from '../services/agmarknetScraper';
 import { getMaharashtraMockData } from '../data/maharashtra-mock-data';
 import { testFlaskConnection, testEnvironmentVariables, getNetworkInfo } from '../services/networkTest';
+import { MarketplaceCache } from '../services/marketplaceCache';
+import { ListingCard } from '../components/marketplace/ListingCard';
+import { BuyerListingCard } from '../components/marketplace/BuyerListingCard';
+import { PriceCard } from '../components/marketplace/PriceCard';
+import { SearchBar } from '../components/marketplace/SearchBar';
+import { FilterChips } from '../components/marketplace/FilterChips';
+import { EmptyState, LoadingState } from '../components/marketplace/EmptyState';
 
 const Marketplace = () => {
   const { t } = useI18n();
@@ -56,7 +63,9 @@ const Marketplace = () => {
   const [hasMoreBuyListings, setHasMoreBuyListings] = useState(true);
   const [hasMorePrices, setHasMorePrices] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const ITEMS_PER_PAGE = 8;
+  const [dataLoaded, setDataLoaded] = useState(false); // Track if data was loaded this session
+  const ITEMS_PER_PAGE = 30;
+  const PRICES_BATCH_SIZE = 10; // Show 10 prices at a time
 
   const [newListing, setNewListing] = useState({
     crop: '',
@@ -120,19 +129,57 @@ const Marketplace = () => {
 
   useEffect(() => {
     loadUserData();
-    loadMarketData();
+    loadMarketDataWithCache();
   }, []);
 
-  // Auto-load data when tab changes
+  // Auto-load data when tab changes (but only if not already loaded)
   useEffect(() => {
-    if (activeTab === 'buy' && listings.length === 0) {
-      loadMarketData();
-    } else if (activeTab === 'prices' && scrapedPrices.length === 0) {
-      loadMarketData();
-    } else if (activeTab === 'sell' && userListings.length === 0) {
-      loadMarketData();
+    if (!dataLoaded) {
+      loadMarketDataWithCache();
     }
   }, [activeTab]);
+
+  const loadMarketDataWithCache = useCallback(async () => {
+    if (dataLoaded) return; // Don't reload if already loaded this session
+
+    setLoading(true);
+    try {
+      // Try to load from cache first
+      const cachedListings = await MarketplaceCache.getListings();
+      const cachedPrices = await MarketplaceCache.getPrices();
+      const cachedUserListings = await MarketplaceCache.getUserListings();
+
+      if (cachedListings) {
+        setListings(cachedListings);
+      }
+      if (cachedPrices) {
+        setScrapedPrices(cachedPrices);
+      }
+      if (cachedUserListings) {
+        setUserListings(cachedUserListings);
+      }
+
+      // If we have cached data, show it immediately and mark as loaded
+      if (cachedListings || cachedPrices || cachedUserListings) {
+        setDataLoaded(true);
+        setLoading(false);
+        
+        // Still refresh in background but don't show loading
+        loadMarketData(true);
+        return;
+      }
+
+      // No cache, load fresh data
+      await loadMarketData();
+      setDataLoaded(true);
+    } catch (error) {
+      console.error('Error loading cached data:', error);
+      await loadMarketData();
+      setDataLoaded(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [dataLoaded, userPhone]);
 
   const loadUserData = async () => {
     try {
@@ -153,8 +200,8 @@ const Marketplace = () => {
     }
   };
 
-  const loadMarketData = async () => {
-    setLoading(true);
+  const loadMarketData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       // Check if Flask scraping API is available
       const scrapingHealthy = await agmarknetScraper.checkFlaskAPIHealth();
@@ -238,6 +285,7 @@ const Marketplace = () => {
       });
       if (listingsResult.success && listingsResult.data) {
         setListings(listingsResult.data);
+        await MarketplaceCache.setListings(listingsResult.data);
         console.log('Loaded listings:', listingsResult.data.length);
       } else {
         console.log('Failed to load listings:', listingsResult.error);
@@ -248,12 +296,18 @@ const Marketplace = () => {
         const userListingsResult = await getSellerListings(userPhone);
         if (userListingsResult.success && userListingsResult.data) {
           setUserListings(userListingsResult.data);
+          await MarketplaceCache.setUserListings(userListingsResult.data);
         }
+      }
+
+      // Cache the scraped prices
+      if (scrapedData.length > 0) {
+        await MarketplaceCache.setPrices(scrapedData);
       }
     } catch (error) {
       console.error('Error loading market data:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -263,7 +317,10 @@ const Marketplace = () => {
     setPricesPage(1);
     setHasMoreBuyListings(true);
     setHasMorePrices(true);
+    setDataLoaded(false); // Reset so fresh data is loaded
+    await MarketplaceCache.clearAll(); // Clear cache on manual refresh
     await loadMarketData();
+    setDataLoaded(true);
     setRefreshing(false);
   };
 
@@ -297,18 +354,22 @@ const Marketplace = () => {
     if (loadingMore || !hasMorePrices) return;
     
     setLoadingMore(true);
-    const nextPage = pricesPage + 1;
-    const totalItems = filteredPrices.length;
-    const currentDisplayed = pricesPage * ITEMS_PER_PAGE;
     
-    if (currentDisplayed >= totalItems) {
-      setHasMorePrices(false);
+    // Simulate loading delay for better UX
+    setTimeout(() => {
+      const nextPage = pricesPage + 1;
+      const totalItems = filteredPrices.length;
+      const currentDisplayed = pricesPage * PRICES_BATCH_SIZE;
+      
+      if (currentDisplayed >= totalItems) {
+        setHasMorePrices(false);
+        setLoadingMore(false);
+        return;
+      }
+      
+      setPricesPage(nextPage);
       setLoadingMore(false);
-      return;
-    }
-    
-    setPricesPage(nextPage);
-    setLoadingMore(false);
+    }, 800); // 800ms delay to show loading spinner
   };
 
   const handleListProduce = async () => {
@@ -500,8 +561,8 @@ const Marketplace = () => {
     return matchesSearch && matchesCrop;
   });
 
-  // Paginated prices for prices tab
-  const paginatedPrices = filteredPrices.slice(0, pricesPage * ITEMS_PER_PAGE);
+  // Paginated prices for prices tab (in batches of 10)
+  const paginatedPrices = filteredPrices.slice(0, pricesPage * PRICES_BATCH_SIZE);
 
 
 
@@ -520,46 +581,24 @@ const Marketplace = () => {
       </TouchableOpacity>
 
       <Text style={styles.sectionTitle}>{t('marketplace.yourActiveListings')}</Text>
-      {userListings.filter(listing => listing.isActive).length > 0 ? (
+      {loading ? (
+        <LoadingState message={t('marketplace.messages.loadingData')} />
+      ) : userListings.filter(listing => listing.isActive).length > 0 ? (
         userListings.filter(listing => listing.isActive).map((listing) => (
-          <View key={listing.id} style={styles.listingCard}>
-            <View style={styles.listingHeader}>
-              <Text style={styles.cropName}>{listing.crop}</Text>
-              <Text style={[styles.priceText, { color: '#4CAF50' }]}>
-                ₹{listing.pricePerUnit}/{listing.unit}
-              </Text>
-            </View>
-            <Text style={styles.quantityText}>{listing.quantity} {listing.unit}</Text>
-            <Text style={styles.qualityText}>{t('marketplace.quality')}: {listing.quality}</Text>
-            <Text style={styles.dateText}>{t('marketplace.listedOn')} {new Date(listing.createdAt).toLocaleDateString()}</Text>
-            {listing.negotiable && (
-              <Text style={styles.negotiableText}>💬 {t('marketplace.priceNegotiable')}</Text>
-            )}
-            <Text style={styles.viewsText}>👁️ {listing.views} {t('marketplace.views')}</Text>
-            
-            {/* Edit and Delete buttons */}
-            <View style={styles.actionButtons}>
-              <TouchableOpacity
-                style={styles.editButton}
-                onPress={() => handleEditListing(listing)}
-              >
-                <Text style={styles.editButtonText}>✏️ {t('marketplace.edit')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => handleDeleteListing(listing)}
-              >
-                <Text style={styles.deleteButtonText}>🗑️ {t('marketplace.delete')}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          <ListingCard
+            key={listing.id}
+            listing={listing}
+            isOwner={true}
+            onEdit={() => handleEditListing(listing)}
+            onDelete={() => handleDeleteListing(listing)}
+          />
         ))
       ) : (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>📋</Text>
-          <Text style={styles.emptyTitle}>{t('marketplace.noActiveListings')}</Text>
-          <Text style={styles.emptySubtitle}>{t('marketplace.tapToStartSelling')}</Text>
-        </View>
+        <EmptyState
+          icon="📋"
+          title={t('marketplace.noActiveListings')}
+          subtitle={t('marketplace.tapToStartSelling')}
+        />
       )}
     </View>
   );
@@ -578,64 +617,29 @@ const Marketplace = () => {
         )}
       </View>
 
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder={t('marketplace.searchCrops')}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </View>
+      <SearchBar
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder={t('marketplace.searchCrops')}
+      />
       
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
-        <TouchableOpacity
-          style={[styles.filterChip, !selectedCrop && styles.selectedFilterChip]}
-          onPress={() => setSelectedCrop('')}
-        >
-          <Text style={[styles.filterChipText, !selectedCrop && styles.selectedFilterChipText]}>
-            {t('marketplace.allCrops')}
-          </Text>
-        </TouchableOpacity>
-        {commonCrops.map((crop) => (
-          <TouchableOpacity
-            key={crop}
-            style={[styles.filterChip, selectedCrop === crop && styles.selectedFilterChip]}
-            onPress={() => setSelectedCrop(crop)}
-          >
-            <Text style={[styles.filterChipText, selectedCrop === crop && styles.selectedFilterChipText]}>
-              {crop}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <FilterChips
+        crops={commonCrops}
+        selectedCrop={selectedCrop}
+        onSelectCrop={setSelectedCrop}
+        allCropsLabel={t('marketplace.allCrops')}
+      />
 
       <Text style={styles.sectionTitle}>
         {isScrapingAvailable ? t('marketplace.realTimeMarketPrices') : t('marketplace.marketPrices')}
       </Text>
       
       {loading ? (
-        <View style={styles.emptyState}>
-          <ActivityIndicator size="large" color="#4CAF50" />
-          <Text style={styles.loadingText}>{t('marketplace.messages.loadingData')}</Text>
-        </View>
+        <LoadingState message={t('marketplace.messages.loadingData')} />
       ) : paginatedPrices.length > 0 ? (
         <>
           {paginatedPrices.map((price: any, index: number) => (
-            <View key={index} style={styles.priceCard}>
-              <View style={styles.priceHeader}>
-                <Text style={styles.cropName}>{price.crop}</Text>
-              </View>
-              <Text style={styles.marketName}>{price.market}</Text>
-              <Text style={styles.currentPrice}>₹{price.price} {t('marketplace.perUnit')} {price.unit}</Text>
-              {price.source && (
-                <Text style={styles.sourceText}>{t('marketplace.source')}: {price.source}</Text>
-              )}
-              {price.scrapedAt && (
-                <Text style={styles.sourceText}>
-                  {t('marketplace.updated')}: {new Date(price.scrapedAt).toLocaleTimeString()}
-                </Text>
-              )}
-            </View>
+            <PriceCard key={index} price={price} isRealTime={isScrapingAvailable} />
           ))}
           
           {/* Load More button for prices */}
@@ -646,115 +650,68 @@ const Marketplace = () => {
               disabled={loadingMore}
             >
               {loadingMore ? (
-                <ActivityIndicator size="small" color="#4CAF50" />
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="white" />
+                  <Text style={[styles.loadMoreText, { marginLeft: 10 }]}>
+                    {t('marketplace.messages.loadingMore')}
+                  </Text>
+                </View>
               ) : (
-                <Text style={styles.loadMoreText}>{t('marketplace.messages.loadingMore')}</Text>
+                <Text style={styles.loadMoreText}>
+                  Load More ({filteredPrices.length - paginatedPrices.length} remaining)
+                </Text>
               )}
             </TouchableOpacity>
           )}
           
-          {paginatedPrices.length >= filteredPrices.length && filteredPrices.length > ITEMS_PER_PAGE && (
+          {paginatedPrices.length >= filteredPrices.length && filteredPrices.length > PRICES_BATCH_SIZE && (
             <Text style={styles.noMoreDataText}>{t('marketplace.messages.noMoreData')}</Text>
           )}
         </>
       ) : (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>📊</Text>
-          <Text style={styles.emptyTitle}>
-            {isScrapingAvailable ? t('marketplace.noPriceData') : t('marketplace.scrapingServiceOffline')}
-          </Text>
-          <Text style={styles.emptySubtitle}>
-            {isScrapingAvailable 
-              ? t('marketplace.tryRefreshing')
-              : t('marketplace.startFlaskService')
-            }
-          </Text>
-        </View>
+        <EmptyState
+          icon="📊"
+          title={isScrapingAvailable ? t('marketplace.noPriceData') : t('marketplace.scrapingServiceOffline')}
+          subtitle={isScrapingAvailable ? t('marketplace.tryRefreshing') : t('marketplace.startFlaskService')}
+        />
       )}
     </View>
   );
 
   const renderBuyTab = () => (
     <View style={styles.tabContent}>
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder={t('marketplace.searchProducts')}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </View>
+      <SearchBar
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder={t('marketplace.searchProducts')}
+      />
       
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
-        <TouchableOpacity
-          style={[styles.filterChip, !selectedCrop && styles.selectedFilterChip]}
-          onPress={() => setSelectedCrop('')}
-        >
-          <Text style={[styles.filterChipText, !selectedCrop && styles.selectedFilterChipText]}>
-            {t('marketplace.allCrops')}
-          </Text>
-        </TouchableOpacity>
-        {commonCrops.map((crop) => (
-          <TouchableOpacity
-            key={crop}
-            style={[styles.filterChip, selectedCrop === crop && styles.selectedFilterChip]}
-            onPress={() => setSelectedCrop(crop)}
-          >
-            <Text style={[styles.filterChipText, selectedCrop === crop && styles.selectedFilterChipText]}>
-              {crop}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
+      <FilterChips
+        crops={commonCrops}
+        selectedCrop={selectedCrop}
+        onSelectCrop={setSelectedCrop}
+        allCropsLabel={t('marketplace.allCrops')}
+      />
 
       <Text style={styles.sectionTitle}>{t('marketplace.availableProduce')}</Text>
       
       {loading ? (
-        <View style={styles.emptyState}>
-          <ActivityIndicator size="large" color="#4CAF50" />
-          <Text style={styles.loadingText}>{t('marketplace.messages.loadingData')}</Text>
-        </View>
+        <LoadingState message={t('marketplace.messages.loadingData')} />
       ) : paginatedBuyListings.length > 0 ? (
         <>
           {paginatedBuyListings.map((listing) => (
-            <View key={listing.id} style={styles.buyerListingCard}>
-              <View style={styles.listingHeader}>
-                <Text style={styles.cropName}>{listing.crop}</Text>
-                <Text style={[styles.priceText, { color: '#4CAF50' }]}>
-                  ₹{listing.pricePerUnit}/{listing.unit}
-                </Text>
-              </View>
-              <Text style={styles.quantityText}>{listing.quantity} {listing.unit} {t('marketplace.available')}</Text>
-              <Text style={styles.qualityText}>{t('marketplace.quality')}: {listing.quality}</Text>
-              {listing.description && (
-                <Text style={styles.descriptionText}>{listing.description}</Text>
-              )}
-              <View style={styles.farmerInfo}>
-                <Text style={styles.farmerName}>👨‍🌾 {listing.sellerName}</Text>
-                <Text style={styles.locationText}>📍 {listing.sellerLocation}</Text>
-              </View>
-              {listing.negotiable && (
-                <Text style={styles.negotiableText}>💬 {t('marketplace.priceNegotiable')}</Text>
-              )}
-              <View style={styles.actionButtons}>
-                <TouchableOpacity
-                  style={styles.contactButton}
-                  onPress={() => {
-                    handleViewListing(listing.id!);
-                    Alert.alert(t('marketplace.contactFarmer'), `${t('marketplace.callAt')} ${listing.sellerName} ${t('marketplace.at')} ${listing.sellerPhone}`);
-                  }}
-                >
-                  <Text style={styles.contactButtonText}>📞 {t('marketplace.contact')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.interestButton}
-                  onPress={() => handleExpressInterest(listing.id!)}
-                >
-                  <Text style={styles.interestButtonText}>💝 {t('marketplace.interest')}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            <BuyerListingCard
+              key={listing.id}
+              listing={listing}
+              onContact={() => {
+                handleViewListing(listing.id!);
+                Alert.alert(
+                  t('marketplace.contactFarmer'),
+                  `${t('marketplace.callAt')} ${listing.sellerName} ${t('marketplace.at')} ${listing.sellerPhone}`
+                );
+              }}
+              onExpressInterest={() => handleExpressInterest(listing.id!)}
+            />
           ))}
           
           {/* Load More button */}
@@ -765,7 +722,7 @@ const Marketplace = () => {
               disabled={loadingMore}
             >
               {loadingMore ? (
-                <ActivityIndicator size="small" color="#4CAF50" />
+                <ActivityIndicator size="small" color="white" />
               ) : (
                 <Text style={styles.loadMoreText}>{t('marketplace.messages.loadingMore')}</Text>
               )}
@@ -777,23 +734,21 @@ const Marketplace = () => {
           )}
         </>
       ) : (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>🛒</Text>
-          <Text style={styles.emptyTitle}>
-            {listings.length === 0 
+        <EmptyState
+          icon="🛒"
+          title={
+            listings.length === 0 
               ? t('marketplace.noListingsAvailable')
               : filteredListings.length === 0 && listings.length > 0
                 ? t('marketplace.noMatchingProducts')
                 : t('marketplace.noListingsAvailable')
-            }
-          </Text>
-          <Text style={styles.emptySubtitle}>
-            {listings.length === 0 
+          }
+          subtitle={
+            listings.length === 0 
               ? t('marketplace.beFirstToList')
               : t('marketplace.adjustFilters')
-            }
-          </Text>
-        </View>
+          }
+        />
       )}
     </View>
   );
