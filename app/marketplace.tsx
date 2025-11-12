@@ -49,6 +49,14 @@ const Marketplace = () => {
   const [selectedCrop, setSelectedCrop] = useState('');
   const [editingListing, setEditingListing] = useState<ProductListing | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  
+  // Pagination states
+  const [buyListingsPage, setBuyListingsPage] = useState(1);
+  const [pricesPage, setPricesPage] = useState(1);
+  const [hasMoreBuyListings, setHasMoreBuyListings] = useState(true);
+  const [hasMorePrices, setHasMorePrices] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const ITEMS_PER_PAGE = 8;
 
   const [newListing, setNewListing] = useState({
     crop: '',
@@ -61,12 +69,37 @@ const Marketplace = () => {
   });
 
   const commonCrops = [
-    'Jowar', 'Bajra', 'Maize', 'Gram', 'Tur (Arhar)', 'Cotton', 'Groundnut', 'Soyabean',
-    'Onion', 'Potato', 'Tomato', 'Chilli', 'Turmeric', 'Coriander', 'Wheat', 'Rice'
+    t('marketplace.crops.jowar'),
+    t('marketplace.crops.bajra'),
+    t('marketplace.crops.maize'),
+    t('marketplace.crops.gram'),
+    t('marketplace.crops.tur'),
+    t('marketplace.crops.cotton'),
+    t('marketplace.crops.groundnut'),
+    t('marketplace.crops.soyabean'),
+    t('marketplace.crops.onion'),
+    t('marketplace.crops.potato'),
+    t('marketplace.crops.tomato'),
+    t('marketplace.crops.chilli'),
+    t('marketplace.crops.turmeric'),
+    t('marketplace.crops.coriander'),
+    t('marketplace.crops.wheat'),
+    t('marketplace.crops.rice')
   ];
 
-  const units = ['quintal', 'kg', 'ton', 'bag', 'piece'];
-  const qualities = ['Premium', 'Good', 'Average'];
+  const units = [
+    t('marketplace.units.quintal'),
+    t('marketplace.units.kg'),
+    t('marketplace.units.ton'),
+    t('marketplace.units.bag'),
+    t('marketplace.units.piece')
+  ];
+  
+  const qualities = [
+    t('marketplace.qualityLevels.premium'),
+    t('marketplace.qualityLevels.good'),
+    t('marketplace.qualityLevels.average')
+  ];
 
   // Utility functions
   const getTrendIcon = (trend: string): string => {
@@ -89,6 +122,17 @@ const Marketplace = () => {
     loadUserData();
     loadMarketData();
   }, []);
+
+  // Auto-load data when tab changes
+  useEffect(() => {
+    if (activeTab === 'buy' && listings.length === 0) {
+      loadMarketData();
+    } else if (activeTab === 'prices' && scrapedPrices.length === 0) {
+      loadMarketData();
+    } else if (activeTab === 'sell' && userListings.length === 0) {
+      loadMarketData();
+    }
+  }, [activeTab]);
 
   const loadUserData = async () => {
     try {
@@ -215,13 +259,61 @@ const Marketplace = () => {
 
   const onRefresh = async () => {
     setRefreshing(true);
+    setBuyListingsPage(1);
+    setPricesPage(1);
+    setHasMoreBuyListings(true);
+    setHasMorePrices(true);
     await loadMarketData();
     setRefreshing(false);
   };
 
+  const loadMoreBuyListings = async () => {
+    if (loadingMore || !hasMoreBuyListings) return;
+    
+    setLoadingMore(true);
+    try {
+      const nextPage = buyListingsPage + 1;
+      const listingsResult = await getActiveListings({
+        limit: (nextPage * ITEMS_PER_PAGE)
+      });
+      
+      if (listingsResult.success && listingsResult.data) {
+        if (listingsResult.data.length < (nextPage * ITEMS_PER_PAGE)) {
+          setHasMoreBuyListings(false);
+        }
+        setListings(listingsResult.data);
+        setBuyListingsPage(nextPage);
+      } else {
+        setHasMoreBuyListings(false);
+      }
+    } catch (error) {
+      console.error('Error loading more listings:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMorePrices = () => {
+    if (loadingMore || !hasMorePrices) return;
+    
+    setLoadingMore(true);
+    const nextPage = pricesPage + 1;
+    const totalItems = filteredPrices.length;
+    const currentDisplayed = pricesPage * ITEMS_PER_PAGE;
+    
+    if (currentDisplayed >= totalItems) {
+      setHasMorePrices(false);
+      setLoadingMore(false);
+      return;
+    }
+    
+    setPricesPage(nextPage);
+    setLoadingMore(false);
+  };
+
   const handleListProduce = async () => {
     if (!newListing.crop || !newListing.quantity || !newListing.pricePerUnit) {
-      Alert.alert('Error', 'Please fill all required fields');
+      Alert.alert(t('marketplace.messages.fillAllFields'), t('marketplace.messages.fillAllFields'));
       return;
     }
 
@@ -259,13 +351,13 @@ const Marketplace = () => {
           description: '',
         });
         
-        Alert.alert('Success', 'Your produce has been listed successfully!');
+        Alert.alert(t('marketplace.messages.listingSuccess'), t('marketplace.messages.listingSuccess'));
         loadMarketData(); // Refresh data
       } else {
-        Alert.alert('Error', result.error || 'Failed to list produce');
+        Alert.alert(t('marketplace.messages.listingFailed'), result.error || t('marketplace.messages.listingFailed'));
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to list produce. Please try again.');
+      Alert.alert(t('marketplace.messages.listingFailed'), t('marketplace.messages.listingFailed'));
     } finally {
       setListingLoading(false);
     }
@@ -274,9 +366,9 @@ const Marketplace = () => {
   const handleExpressInterest = async (listingId: string) => {
     try {
       await expressInterest(listingId, userPhone);
-      Alert.alert('Interest Expressed', 'The seller will be notified of your interest.');
+      Alert.alert(t('marketplace.expressedInterest'), t('marketplace.sellerNotified'));
     } catch (error) {
-      Alert.alert('Error', 'Failed to express interest. Please try again.');
+      Alert.alert(t('marketplace.messages.interestFailed'), t('marketplace.messages.interestFailed'));
     }
   };
 
@@ -304,12 +396,12 @@ const Marketplace = () => {
 
   const handleUpdateListing = async () => {
     if (!editingListing || !editingListing.id) {
-      Alert.alert('Error', 'No listing selected for editing');
+      Alert.alert(t('marketplace.messages.updateFailed'), t('marketplace.messages.updateFailed'));
       return;
     }
 
     if (!newListing.crop || !newListing.quantity || !newListing.pricePerUnit) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      Alert.alert(t('marketplace.messages.fillAllFields'), t('marketplace.messages.fillAllFields'));
       return;
     }
 
@@ -341,13 +433,13 @@ const Marketplace = () => {
           description: '',
         });
         
-        Alert.alert('Success', 'Your listing has been updated successfully!');
+        Alert.alert(t('marketplace.messages.updateSuccess'), t('marketplace.messages.updateSuccess'));
         loadMarketData(); // Refresh data
       } else {
-        Alert.alert('Error', result.error || 'Failed to update listing');
+        Alert.alert(t('marketplace.messages.updateFailed'), result.error || t('marketplace.messages.updateFailed'));
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to update listing. Please try again.');
+      Alert.alert(t('marketplace.messages.updateFailed'), t('marketplace.messages.updateFailed'));
     } finally {
       setListingLoading(false);
     }
@@ -355,15 +447,15 @@ const Marketplace = () => {
 
   const handleDeleteListing = (listing: ProductListing) => {
     Alert.alert(
-      'Delete Listing',
-      `Are you sure you want to delete your ${listing.crop} listing?`,
+      t('marketplace.messages.deleteConfirm'),
+      `${t('marketplace.messages.deleteMessage')} ${listing.crop} ${t('marketplace.messages.listing')}`,
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel',
         },
         {
-          text: 'Delete',
+          text: t('marketplace.delete'),
           style: 'destructive',
           onPress: async () => {
             if (!listing.id) return;
@@ -372,13 +464,13 @@ const Marketplace = () => {
               const result = await deleteProductListing(listing.id);
               
               if (result.success) {
-                Alert.alert('Success', 'Your listing has been deleted successfully!');
+                Alert.alert(t('marketplace.messages.deleteSuccess'), t('marketplace.messages.deleteSuccess'));
                 loadMarketData(); // Refresh data
               } else {
-                Alert.alert('Error', result.error || 'Failed to delete listing');
+                Alert.alert(t('marketplace.messages.deleteFailed'), result.error || t('marketplace.messages.deleteFailed'));
               }
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete listing. Please try again.');
+              Alert.alert(t('marketplace.messages.deleteFailed'), t('marketplace.messages.deleteFailed'));
             }
           },
         },
@@ -396,6 +488,9 @@ const Marketplace = () => {
     return matchesSearch && matchesCrop && listing.sellerId !== userPhone;
   });
 
+  // Paginated listings for buy tab
+  const paginatedBuyListings = filteredListings.slice(0, buyListingsPage * ITEMS_PER_PAGE);
+
   const filteredPrices = scrapedPrices.filter((price: any) => {
     const matchesSearch = !searchQuery || 
       price.crop.toLowerCase().includes(searchQuery.toLowerCase());
@@ -404,6 +499,9 @@ const Marketplace = () => {
     
     return matchesSearch && matchesCrop;
   });
+
+  // Paginated prices for prices tab
+  const paginatedPrices = filteredPrices.slice(0, pricesPage * ITEMS_PER_PAGE);
 
 
 
@@ -415,13 +513,13 @@ const Marketplace = () => {
       >
         <Text style={styles.listProduceIcon}>📦</Text>
         <View>
-          <Text style={styles.listProduceTitle}>List Your Produce</Text>
-          <Text style={styles.listProduceSubtitle}>Connect with buyers in your area</Text>
+          <Text style={styles.listProduceTitle}>{t('marketplace.listYourProduce')}</Text>
+          <Text style={styles.listProduceSubtitle}>{t('marketplace.connectWithBuyers')}</Text>
         </View>
         <Text style={styles.arrow}>→</Text>
       </TouchableOpacity>
 
-      <Text style={styles.sectionTitle}>Your Active Listings</Text>
+      <Text style={styles.sectionTitle}>{t('marketplace.yourActiveListings')}</Text>
       {userListings.filter(listing => listing.isActive).length > 0 ? (
         userListings.filter(listing => listing.isActive).map((listing) => (
           <View key={listing.id} style={styles.listingCard}>
@@ -432,12 +530,12 @@ const Marketplace = () => {
               </Text>
             </View>
             <Text style={styles.quantityText}>{listing.quantity} {listing.unit}</Text>
-            <Text style={styles.qualityText}>Quality: {listing.quality}</Text>
-            <Text style={styles.dateText}>Listed on {new Date(listing.createdAt).toLocaleDateString()}</Text>
+            <Text style={styles.qualityText}>{t('marketplace.quality')}: {listing.quality}</Text>
+            <Text style={styles.dateText}>{t('marketplace.listedOn')} {new Date(listing.createdAt).toLocaleDateString()}</Text>
             {listing.negotiable && (
-              <Text style={styles.negotiableText}>💬 Price negotiable</Text>
+              <Text style={styles.negotiableText}>💬 {t('marketplace.priceNegotiable')}</Text>
             )}
-            <Text style={styles.viewsText}>👁️ {listing.views} views</Text>
+            <Text style={styles.viewsText}>👁️ {listing.views} {t('marketplace.views')}</Text>
             
             {/* Edit and Delete buttons */}
             <View style={styles.actionButtons}>
@@ -445,13 +543,13 @@ const Marketplace = () => {
                 style={styles.editButton}
                 onPress={() => handleEditListing(listing)}
               >
-                <Text style={styles.editButtonText}>✏️ Edit</Text>
+                <Text style={styles.editButtonText}>✏️ {t('marketplace.edit')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.deleteButton}
                 onPress={() => handleDeleteListing(listing)}
               >
-                <Text style={styles.deleteButtonText}>🗑️ Delete</Text>
+                <Text style={styles.deleteButtonText}>🗑️ {t('marketplace.delete')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -459,8 +557,8 @@ const Marketplace = () => {
       ) : (
         <View style={styles.emptyState}>
           <Text style={styles.emptyIcon}>📋</Text>
-          <Text style={styles.emptyTitle}>No active listings</Text>
-          <Text style={styles.emptySubtitle}>Tap "List Your Produce" to start selling</Text>
+          <Text style={styles.emptyTitle}>{t('marketplace.noActiveListings')}</Text>
+          <Text style={styles.emptySubtitle}>{t('marketplace.tapToStartSelling')}</Text>
         </View>
       )}
     </View>
@@ -471,11 +569,11 @@ const Marketplace = () => {
       {/* Status indicator for scraping service */}
       <View style={styles.statusContainer}>
         <Text style={styles.statusText}>
-          {isScrapingAvailable ? '🟢 Real-time prices from AGMARKNET' : '🔴 Scraping service unavailable'}
+          {isScrapingAvailable ? `🟢 ${t('marketplace.realTimePrices')}` : `🔴 ${t('marketplace.scrapingServiceOffline')}`}
         </Text>
         {!isScrapingAvailable && (
           <Text style={styles.statusSubtext}>
-            Make sure Flask scraping service is running on port 5000
+            {t('marketplace.startFlaskService')}
           </Text>
         )}
       </View>
@@ -483,7 +581,7 @@ const Marketplace = () => {
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search crops..."
+          placeholder={t('marketplace.searchCrops')}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -495,7 +593,7 @@ const Marketplace = () => {
           onPress={() => setSelectedCrop('')}
         >
           <Text style={[styles.filterChipText, !selectedCrop && styles.selectedFilterChipText]}>
-            All Crops
+            {t('marketplace.allCrops')}
           </Text>
         </TouchableOpacity>
         {commonCrops.map((crop) => (
@@ -512,38 +610,63 @@ const Marketplace = () => {
       </ScrollView>
 
       <Text style={styles.sectionTitle}>
-        {isScrapingAvailable ? 'Real-time Market Prices' : 'Market Prices'}
+        {isScrapingAvailable ? t('marketplace.realTimeMarketPrices') : t('marketplace.marketPrices')}
       </Text>
       
-      {filteredPrices.length > 0 ? (
-        filteredPrices.map((price: any, index: number) => (
-          <View key={index} style={styles.priceCard}>
-            <View style={styles.priceHeader}>
-              <Text style={styles.cropName}>{price.crop}</Text>
-             
+      {loading ? (
+        <View style={styles.emptyState}>
+          <ActivityIndicator size="large" color="#4CAF50" />
+          <Text style={styles.loadingText}>{t('marketplace.messages.loadingData')}</Text>
+        </View>
+      ) : paginatedPrices.length > 0 ? (
+        <>
+          {paginatedPrices.map((price: any, index: number) => (
+            <View key={index} style={styles.priceCard}>
+              <View style={styles.priceHeader}>
+                <Text style={styles.cropName}>{price.crop}</Text>
+              </View>
+              <Text style={styles.marketName}>{price.market}</Text>
+              <Text style={styles.currentPrice}>₹{price.price} {t('marketplace.perUnit')} {price.unit}</Text>
+              {price.source && (
+                <Text style={styles.sourceText}>{t('marketplace.source')}: {price.source}</Text>
+              )}
+              {price.scrapedAt && (
+                <Text style={styles.sourceText}>
+                  {t('marketplace.updated')}: {new Date(price.scrapedAt).toLocaleTimeString()}
+                </Text>
+              )}
             </View>
-            <Text style={styles.marketName}>{price.market}</Text>
-            <Text style={styles.currentPrice}>₹{price.price} per {price.unit}</Text>
-            {price.source && (
-              <Text style={styles.sourceText}>Source: {price.source}</Text>
-            )}
-            {price.scrapedAt && (
-              <Text style={styles.sourceText}>
-                Updated: {new Date(price.scrapedAt).toLocaleTimeString()}
-              </Text>
-            )}
-          </View>
-        ))
+          ))}
+          
+          {/* Load More button for prices */}
+          {paginatedPrices.length < filteredPrices.length && (
+            <TouchableOpacity
+              style={styles.loadMoreButton}
+              onPress={loadMorePrices}
+              disabled={loadingMore}
+            >
+              {loadingMore ? (
+                <ActivityIndicator size="small" color="#4CAF50" />
+              ) : (
+                <Text style={styles.loadMoreText}>{t('marketplace.messages.loadingMore')}</Text>
+              )}
+            </TouchableOpacity>
+          )}
+          
+          {paginatedPrices.length >= filteredPrices.length && filteredPrices.length > ITEMS_PER_PAGE && (
+            <Text style={styles.noMoreDataText}>{t('marketplace.messages.noMoreData')}</Text>
+          )}
+        </>
       ) : (
         <View style={styles.emptyState}>
           <Text style={styles.emptyIcon}>📊</Text>
           <Text style={styles.emptyTitle}>
-            {isScrapingAvailable ? 'No price data available' : 'Scraping service offline'}
+            {isScrapingAvailable ? t('marketplace.noPriceData') : t('marketplace.scrapingServiceOffline')}
           </Text>
           <Text style={styles.emptySubtitle}>
             {isScrapingAvailable 
-              ? 'Try refreshing or check your filters' 
-              : 'Start the Flask scraping service to see real-time prices'
+              ? t('marketplace.tryRefreshing')
+              : t('marketplace.startFlaskService')
             }
           </Text>
         </View>
@@ -556,7 +679,7 @@ const Marketplace = () => {
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search products..."
+          placeholder={t('marketplace.searchProducts')}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -568,7 +691,7 @@ const Marketplace = () => {
           onPress={() => setSelectedCrop('')}
         >
           <Text style={[styles.filterChipText, !selectedCrop && styles.selectedFilterChipText]}>
-            All Crops
+            {t('marketplace.allCrops')}
           </Text>
         </TouchableOpacity>
         {commonCrops.map((crop) => (
@@ -585,62 +708,89 @@ const Marketplace = () => {
       </ScrollView>
 
 
-      <Text style={styles.sectionTitle}>Available Produce</Text>
-      {filteredListings.length > 0 ? (
-        filteredListings.map((listing) => (
-          <View key={listing.id} style={styles.buyerListingCard}>
-            <View style={styles.listingHeader}>
-              <Text style={styles.cropName}>{listing.crop}</Text>
-              <Text style={[styles.priceText, { color: '#4CAF50' }]}>
-                ₹{listing.pricePerUnit}/{listing.unit}
-              </Text>
+      <Text style={styles.sectionTitle}>{t('marketplace.availableProduce')}</Text>
+      
+      {loading ? (
+        <View style={styles.emptyState}>
+          <ActivityIndicator size="large" color="#4CAF50" />
+          <Text style={styles.loadingText}>{t('marketplace.messages.loadingData')}</Text>
+        </View>
+      ) : paginatedBuyListings.length > 0 ? (
+        <>
+          {paginatedBuyListings.map((listing) => (
+            <View key={listing.id} style={styles.buyerListingCard}>
+              <View style={styles.listingHeader}>
+                <Text style={styles.cropName}>{listing.crop}</Text>
+                <Text style={[styles.priceText, { color: '#4CAF50' }]}>
+                  ₹{listing.pricePerUnit}/{listing.unit}
+                </Text>
+              </View>
+              <Text style={styles.quantityText}>{listing.quantity} {listing.unit} {t('marketplace.available')}</Text>
+              <Text style={styles.qualityText}>{t('marketplace.quality')}: {listing.quality}</Text>
+              {listing.description && (
+                <Text style={styles.descriptionText}>{listing.description}</Text>
+              )}
+              <View style={styles.farmerInfo}>
+                <Text style={styles.farmerName}>👨‍🌾 {listing.sellerName}</Text>
+                <Text style={styles.locationText}>📍 {listing.sellerLocation}</Text>
+              </View>
+              {listing.negotiable && (
+                <Text style={styles.negotiableText}>💬 {t('marketplace.priceNegotiable')}</Text>
+              )}
+              <View style={styles.actionButtons}>
+                <TouchableOpacity
+                  style={styles.contactButton}
+                  onPress={() => {
+                    handleViewListing(listing.id!);
+                    Alert.alert(t('marketplace.contactFarmer'), `${t('marketplace.callAt')} ${listing.sellerName} ${t('marketplace.at')} ${listing.sellerPhone}`);
+                  }}
+                >
+                  <Text style={styles.contactButtonText}>📞 {t('marketplace.contact')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.interestButton}
+                  onPress={() => handleExpressInterest(listing.id!)}
+                >
+                  <Text style={styles.interestButtonText}>💝 {t('marketplace.interest')}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            <Text style={styles.quantityText}>{listing.quantity} {listing.unit} available</Text>
-            <Text style={styles.qualityText}>Quality: {listing.quality}</Text>
-            {listing.description && (
-              <Text style={styles.descriptionText}>{listing.description}</Text>
-            )}
-            <View style={styles.farmerInfo}>
-              <Text style={styles.farmerName}>👨‍🌾 {listing.sellerName}</Text>
-              <Text style={styles.locationText}>📍 {listing.sellerLocation}</Text>
-            </View>
-            {listing.negotiable && (
-              <Text style={styles.negotiableText}>💬 Price negotiable</Text>
-            )}
-            <View style={styles.actionButtons}>
-              <TouchableOpacity
-                style={styles.contactButton}
-                onPress={() => {
-                  handleViewListing(listing.id!);
-                  Alert.alert('Contact Farmer', `Call ${listing.sellerName} at ${listing.sellerPhone}`);
-                }}
-              >
-                <Text style={styles.contactButtonText}>📞 Contact</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.interestButton}
-                onPress={() => handleExpressInterest(listing.id!)}
-              >
-                <Text style={styles.interestButtonText}>💝 Interest</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ))
+          ))}
+          
+          {/* Load More button */}
+          {paginatedBuyListings.length < filteredListings.length && hasMoreBuyListings && (
+            <TouchableOpacity
+              style={styles.loadMoreButton}
+              onPress={loadMoreBuyListings}
+              disabled={loadingMore}
+            >
+              {loadingMore ? (
+                <ActivityIndicator size="small" color="#4CAF50" />
+              ) : (
+                <Text style={styles.loadMoreText}>{t('marketplace.messages.loadingMore')}</Text>
+              )}
+            </TouchableOpacity>
+          )}
+          
+          {!hasMoreBuyListings && paginatedBuyListings.length > ITEMS_PER_PAGE && (
+            <Text style={styles.noMoreDataText}>{t('marketplace.messages.noMoreData')}</Text>
+          )}
+        </>
       ) : (
         <View style={styles.emptyState}>
           <Text style={styles.emptyIcon}>🛒</Text>
           <Text style={styles.emptyTitle}>
             {listings.length === 0 
-              ? "No listings available" 
+              ? t('marketplace.noListingsAvailable')
               : filteredListings.length === 0 && listings.length > 0
-                ? "No matching products found"
-                : "No products found"
+                ? t('marketplace.noMatchingProducts')
+                : t('marketplace.noListingsAvailable')
             }
           </Text>
           <Text style={styles.emptySubtitle}>
             {listings.length === 0 
-              ? "Be the first to list your produce for sale" 
-              : "Try adjusting your search filters"
+              ? t('marketplace.beFirstToList')
+              : t('marketplace.adjustFilters')
             }
           </Text>
         </View>
@@ -654,7 +804,7 @@ const Marketplace = () => {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButton}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('modules.marketplace')}</Text>
+        <Text style={styles.headerTitle}>{t('marketplace.title')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -664,7 +814,7 @@ const Marketplace = () => {
           onPress={() => setActiveTab('sell')}
         >
           <Text style={[styles.tabText, activeTab === 'sell' && styles.activeTabText]}>
-            Sell
+            {t('marketplace.sell')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -672,7 +822,7 @@ const Marketplace = () => {
           onPress={() => setActiveTab('prices')}
         >
           <Text style={[styles.tabText, activeTab === 'prices' && styles.activeTabText]}>
-            Prices
+            {t('marketplace.prices')}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -680,7 +830,7 @@ const Marketplace = () => {
           onPress={() => setActiveTab('buy')}
         >
           <Text style={[styles.tabText, activeTab === 'buy' && styles.activeTabText]}>
-            Buy
+            {t('marketplace.buy')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -702,7 +852,7 @@ const Marketplace = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>List Your Produce</Text>
+              <Text style={styles.modalTitle}>{t('marketplace.listProduceModal.title')}</Text>
               <TouchableOpacity 
                 onPress={() => setShowListingModal(false)}
                 disabled={listingLoading}
@@ -714,13 +864,13 @@ const Marketplace = () => {
             {listingLoading && (
               <View style={styles.modalLoadingOverlay}>
                 <ActivityIndicator size="large" color="#4CAF50" />
-                <Text style={styles.loadingText}>Creating your listing...</Text>
+                <Text style={styles.loadingText}>{t('marketplace.listProduceModal.creating')}</Text>
               </View>
             )}
 
             <ScrollView style={listingLoading && { opacity: 0.3 }}>
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Crop *</Text>
+                <Text style={styles.inputLabel}>{t('marketplace.listProduceModal.crop')} *</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {commonCrops.map((crop) => (
                     <TouchableOpacity
@@ -743,10 +893,10 @@ const Marketplace = () => {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Quantity *</Text>
+                <Text style={styles.inputLabel}>{t('marketplace.listProduceModal.quantity')} *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter quantity"
+                  placeholder={t('marketplace.listProduceModal.enterQuantity')}
                   value={newListing.quantity}
                   onChangeText={(text) => setNewListing({...newListing, quantity: text})}
                   keyboardType="numeric"
@@ -754,7 +904,7 @@ const Marketplace = () => {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Unit</Text>
+                <Text style={styles.inputLabel}>{t('marketplace.listProduceModal.unit')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {units.map((unit) => (
                     <TouchableOpacity
@@ -777,10 +927,10 @@ const Marketplace = () => {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Price per {newListing.unit} (₹) *</Text>
+                <Text style={styles.inputLabel}>{t('marketplace.listProduceModal.pricePerUnit').replace('{unit}', newListing.unit)} (₹) *</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter price"
+                  placeholder={t('marketplace.listProduceModal.enterPrice')}
                   value={newListing.pricePerUnit}
                   onChangeText={(text) => setNewListing({...newListing, pricePerUnit: text})}
                   keyboardType="numeric"
@@ -788,7 +938,7 @@ const Marketplace = () => {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Quality</Text>
+                <Text style={styles.inputLabel}>{t('marketplace.quality')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {qualities.map((quality) => (
                     <TouchableOpacity
@@ -811,10 +961,10 @@ const Marketplace = () => {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Description (Optional)</Text>
+                <Text style={styles.inputLabel}>{t('marketplace.listProduceModal.descriptionOptional')}</Text>
                 <TextInput
                   style={[styles.input, { height: 80 }]}
-                  placeholder="Additional details about your produce..."
+                  placeholder={t('marketplace.listProduceModal.descriptionPlaceholder')}
                   value={newListing.description}
                   onChangeText={(text) => setNewListing({...newListing, description: text})}
                   multiline
@@ -829,7 +979,7 @@ const Marketplace = () => {
                 <View style={[styles.checkbox, newListing.negotiable && styles.checkedBox]}>
                   {newListing.negotiable && <Text style={styles.checkmark}>✓</Text>}
                 </View>
-                <Text style={styles.checkboxLabel}>Price is negotiable</Text>
+                <Text style={styles.checkboxLabel}>{t('marketplace.listProduceModal.negotiablePrice')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -840,10 +990,10 @@ const Marketplace = () => {
                 {listingLoading ? (
                   <View style={styles.loadingContainer}>
                     <ActivityIndicator size="small" color="white" />
-                    <Text style={[styles.submitButtonText, { marginLeft: 10 }]}>Listing...</Text>
+                    <Text style={[styles.submitButtonText, { marginLeft: 10 }]}>{t('marketplace.listProduceModal.listing')}</Text>
                   </View>
                 ) : (
-                  <Text style={styles.submitButtonText}>List Produce</Text>
+                  <Text style={styles.submitButtonText}>{t('marketplace.listProduceModal.listProduce')}</Text>
                 )}
               </TouchableOpacity>
             </ScrollView>
@@ -860,7 +1010,7 @@ const Marketplace = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Your Produce</Text>
+              <Text style={styles.modalTitle}>{t('marketplace.listProduceModal.editTitle')}</Text>
               <TouchableOpacity 
                 onPress={() => {
                   setShowEditModal(false);
@@ -875,13 +1025,13 @@ const Marketplace = () => {
             {listingLoading && (
               <View style={styles.modalLoadingOverlay}>
                 <ActivityIndicator size="large" color="#4CAF50" />
-                <Text style={styles.loadingText}>Updating your listing...</Text>
+                <Text style={styles.loadingText}>{t('marketplace.listProduceModal.updatingMessage')}</Text>
               </View>
             )}
 
             <ScrollView style={listingLoading && { opacity: 0.3 }}>
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Crop *</Text>
+                <Text style={styles.inputLabel}>{t('marketplace.listProduceModal.crop')} *</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {commonCrops.map((crop) => (
                     <TouchableOpacity
@@ -905,10 +1055,10 @@ const Marketplace = () => {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Quantity *</Text>
+                <Text style={styles.inputLabel}>{t('marketplace.listProduceModal.quantity')} *</Text>
                 <TextInput
                   style={[styles.input, listingLoading && { opacity: 0.5 }]}
-                  placeholder="Enter quantity"
+                  placeholder={t('marketplace.listProduceModal.enterQuantity')}
                   value={newListing.quantity}
                   onChangeText={(text) => setNewListing({...newListing, quantity: text})}
                   keyboardType="numeric"
@@ -917,7 +1067,7 @@ const Marketplace = () => {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Unit</Text>
+                <Text style={styles.inputLabel}>{t('marketplace.listProduceModal.unit')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {units.map((unit) => (
                     <TouchableOpacity
@@ -941,10 +1091,10 @@ const Marketplace = () => {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Price per {newListing.unit} (₹) *</Text>
+                <Text style={styles.inputLabel}>{t('marketplace.listProduceModal.pricePerUnit').replace('{unit}', newListing.unit)} (₹) *</Text>
                 <TextInput
                   style={[styles.input, listingLoading && { opacity: 0.5 }]}
-                  placeholder="Enter price"
+                  placeholder={t('marketplace.listProduceModal.enterPrice')}
                   value={newListing.pricePerUnit}
                   onChangeText={(text) => setNewListing({...newListing, pricePerUnit: text})}
                   keyboardType="numeric"
@@ -953,7 +1103,7 @@ const Marketplace = () => {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Quality</Text>
+                <Text style={styles.inputLabel}>{t('marketplace.quality')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {qualities.map((quality) => (
                     <TouchableOpacity
@@ -977,10 +1127,10 @@ const Marketplace = () => {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Description (Optional)</Text>
+                <Text style={styles.inputLabel}>{t('marketplace.listProduceModal.descriptionOptional')}</Text>
                 <TextInput
                   style={[styles.textArea, listingLoading && { opacity: 0.5 }]}
-                  placeholder="Add any additional details about your produce..."
+                  placeholder={t('marketplace.listProduceModal.descriptionPlaceholder')}
                   value={newListing.description}
                   onChangeText={(text) => setNewListing({...newListing, description: text})}
                   multiline
@@ -997,7 +1147,7 @@ const Marketplace = () => {
                 <View style={[styles.checkbox, newListing.negotiable && styles.checkedBox]}>
                   {newListing.negotiable && <Text style={styles.checkmark}>✓</Text>}
                 </View>
-                <Text style={styles.checkboxLabel}>Price is negotiable</Text>
+                <Text style={styles.checkboxLabel}>{t('marketplace.listProduceModal.negotiablePrice')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -1008,10 +1158,10 @@ const Marketplace = () => {
                 {listingLoading ? (
                   <View style={styles.loadingContainer}>
                     <ActivityIndicator size="small" color="white" />
-                    <Text style={[styles.submitButtonText, { marginLeft: 10 }]}>Updating...</Text>
+                    <Text style={[styles.submitButtonText, { marginLeft: 10 }]}>{t('marketplace.listProduceModal.updatingButton')}</Text>
                   </View>
                 ) : (
-                  <Text style={styles.submitButtonText}>Update Listing</Text>
+                  <Text style={styles.submitButtonText}>{t('marketplace.listProduceModal.update')}</Text>
                 )}
               </TouchableOpacity>
             </ScrollView>
@@ -1540,6 +1690,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     lineHeight: 16,
+  },
+  loadMoreButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 10,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    marginVertical: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadMoreText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  noMoreDataText: {
+    textAlign: 'center',
+    color: '#888',
+    fontSize: 14,
+    marginVertical: 15,
+    fontStyle: 'italic',
   },
 });
 
