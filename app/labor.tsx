@@ -92,6 +92,11 @@ export default function LaborMarketplace() {
       return;
     }
 
+    if (job.farmerId === userPhone) {
+      Alert.alert('Error', 'You cannot apply to your own job posting');
+      return;
+    }
+
     if (job.applicants && job.applicants.includes(userPhone)) {
       Alert.alert('Info', 'You have already applied for this job');
       return;
@@ -123,6 +128,16 @@ export default function LaborMarketplace() {
   };
 
   const handleContactWorker = async (worker: any) => {
+    if (!userPhone) {
+      Alert.alert('Error', 'Please login first');
+      return;
+    }
+
+    if (worker.workerId === userPhone) {
+      Alert.alert('Error', 'This is your own profile');
+      return;
+    }
+
     if (worker.id) {
       await incrementWorkerViews(worker.id);
     }
@@ -316,6 +331,10 @@ export default function LaborMarketplace() {
 
   // Filter jobs and workers
   const filteredJobs = jobListings.filter(job => {
+    // Don't show user's own job postings in Find Work tab
+    const isOwnJob = job.farmerId === userPhone;
+    if (isOwnJob) return false;
+    
     const matchesSearch = !searchQuery || 
       job.jobTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.taskType.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -325,6 +344,10 @@ export default function LaborMarketplace() {
   });
 
   const filteredWorkers = workerProfiles.filter(worker => {
+    // Don't show user's own worker profile in Find Workers tab
+    const isOwnProfile = worker.workerId === userPhone;
+    if (isOwnProfile) return false;
+    
     const matchesSearch = !searchQuery || 
       worker.workerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       worker.skills.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase())) ||
