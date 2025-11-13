@@ -9,78 +9,165 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  Scheme,
-  Application,
   categories,
   mockSchemes,
-  mockApplications,
   getStatusColor,
   getStatusIcon,
   validateApplicationForm,
   initialApplicationForm,
 } from '../data/schemes-data';
+import {
+  Scheme,
+  SchemeApplication,
+  getActiveSchemes,
+  submitSchemeApplication,
+  getUserApplications,
+  initializeSchemesCollection,
+} from '../services/schemesService';
 
 const Schemes = () => {
   const [schemes, setSchemes] = useState<Scheme[]>([]);
-  const [applications, setApplications] = useState<Application[]>([]);
+  const [applications, setApplications] = useState<SchemeApplication[]>([]);
   const [activeTab, setActiveTab] = useState<'available' | 'applications'>('available');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [selectedScheme, setSelectedScheme] = useState<Scheme | null>(null);
   const [applicationForm, setApplicationForm] = useState(initialApplicationForm);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  
+  // User data
+  const [userPhone, setUserPhone] = useState<string>('');
+  const [userName, setUserName] = useState<string>('');
+  const [userState, setUserState] = useState<string>('');
+  const [userDistrict, setUserDistrict] = useState<string>('');
 
   useEffect(() => {
-    loadSchemesData();
-    loadApplicationsData();
+    loadUserData();
+    initializeData();
   }, []);
+
+  useEffect(() => {
+    if (userPhone) {
+      loadApplicationsData();
+    }
+  }, [userPhone]);
+
+  const loadUserData = async () => {
+    try {
+      const [phone, name, state, district] = await AsyncStorage.multiGet([
+        'userPhone',
+        'userName',
+        'userState',
+        'userDistrict',
+      ]);
+      
+      setUserPhone(phone[1] || '');
+      setUserName(name[1] || '');
+      setUserState(state[1] || '');
+      setUserDistrict(district[1] || '');
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  };
+
+  const initializeData = async () => {
+    try {
+      setLoading(true);
+      
+      // Initialize schemes in Firestore (only runs once)
+      await initializeSchemesCollection(mockSchemes);
+      
+      // Load schemes from Firebase
+      await loadSchemesData();
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Error initializing data:', error);
+      setLoading(false);
+    }
+  };
 
   const loadSchemesData = async () => {
     try {
-      setLoading(true);
-      // Load schemes from static data
-      setSchemes(mockSchemes);
-      setLoading(false);
+      const schemesData = await getActiveSchemes(selectedCategory);
+      setSchemes(schemesData);
     } catch (error) {
       console.error('Error loading schemes:', error);
-      setLoading(false);
+      Alert.alert('Error', 'Failed to load schemes. Please try again.');
     }
   };
 
   const loadApplicationsData = async () => {
     try {
-      // Load applications from static data
-      setApplications(mockApplications);
+      if (!userPhone) return;
+      
+      const applicationsData = await getUserApplications(userPhone);
+      setApplications(applicationsData);
     } catch (error) {
       console.error('Error loading applications:', error);
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadSchemesData();
+    if (userPhone) {
+      await loadApplicationsData();
+    }
+    setRefreshing(false);
+  };
 
 
-  const filteredSchemes = selectedCategory === 'all' 
-    ? schemes 
-    : schemes.filter(scheme => scheme.category === selectedCategory);
+
+  useEffect(() => {
+    if (!loading) {
+      loadSchemesData();
+    }
+  }, [selectedCategory]);
+
+  const filteredSchemes = schemes;
 
   const handleApplyScheme = (scheme: Scheme) => {
+    // Check if user is logged in
+    if (!userPhone) {
+      Alert.alert(
+        'Login Required',
+        'Please complete registration to apply for schemes',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Go to Registration', onPress: () => router.push('/onboarding/registration') }
+        ]
+      );
+      return;
+    }
+
+    // Check if already applied
+    const alreadyApplied = applications.some(app => app.schemeId === scheme.id);
+    if (alreadyApplied) {
+      Alert.alert(
+        'Already Applied',
+        'You have already applied for this scheme. Check the "My Applications" tab to track its status.'
+      );
+      return;
+    }
+
     setSelectedScheme(scheme);
     setShowApplicationModal(true);
     
-    // Pre-fill form with saved user data
-    AsyncStorage.multiGet(['userName', 'userPhone', 'userVillage', 'userDistrict'])
-      .then(result => {
-        const userData = Object.fromEntries(result);
-        setApplicationForm(prev => ({
-          ...prev,
-          farmerName: userData.userName || '',
-          mobileNumber: userData.userPhone || '',
-          address: `${userData.userVillage || ''}, ${userData.userDistrict || ''}`.trim(),
-        }));
-      });
+    // Pre-fill form with user data
+    setApplicationForm(prev => ({
+      ...prev,
+      farmerName: userName || '',
+      mobileNumber: userPhone || '',
+      address: `${userDistrict || ''}, ${userState || ''}`.trim().replace(/^, |, $/, ''),
+    }));
   };
 
   const submitApplication = async () => {
@@ -90,31 +177,64 @@ const Schemes = () => {
     const missingFields = validateApplicationForm(applicationForm);
 
     if (missingFields.length > 0) {
-      Alert.alert('Error', 'Please fill all required fields');
+      Alert.alert('Error', 'Please fill all required fields: Full Name, Aadhar Number, Mobile Number, and Address');
       return;
     }
 
+    // Validate Aadhar number (12 digits)
+    if (applicationForm.aadharNumber.length !== 12) {
+      Alert.alert('Error', 'Please enter a valid 12-digit Aadhar number');
+      return;
+    }
+
+    // Validate mobile number (10 digits)
+    if (applicationForm.mobileNumber.length !== 10) {
+      Alert.alert('Error', 'Please enter a valid 10-digit mobile number');
+      return;
+    }
+
+    setSubmitting(true);
     try {
-      const newApplication: Application = {
-        id: Date.now().toString(),
-        schemeId: selectedScheme.id,
+      const result = await submitSchemeApplication({
+        schemeId: selectedScheme.id!,
         schemeName: selectedScheme.title,
-        applicationDate: new Date().toISOString().split('T')[0],
+        userId: userPhone,
+        userName: userName,
+        userPhone: userPhone,
+        userState: userState,
+        userDistrict: userDistrict,
+        ...applicationForm,
         status: 'pending',
-        remarks: 'Application submitted successfully. Under initial review.',
-      };
+      });
 
-      setApplications(prev => [newApplication, ...prev]);
-      setShowApplicationModal(false);
-      setApplicationForm(initialApplicationForm);
+      if (result.success) {
+        setShowApplicationModal(false);
+        setApplicationForm(initialApplicationForm);
 
-      Alert.alert(
-        'Success!', 
-        'Your application has been submitted successfully. You can track its status in the "My Applications" tab.',
-        [{ text: 'OK', onPress: () => setActiveTab('applications') }]
-      );
+        Alert.alert(
+          'Success!', 
+          result.message || 'Your application has been submitted successfully. You can track its status in the "My Applications" tab.',
+          [
+            { 
+              text: 'View Applications', 
+              onPress: () => {
+                setActiveTab('applications');
+                loadApplicationsData();
+              }
+            },
+            { text: 'OK', style: 'cancel' }
+          ]
+        );
+        
+        // Reload applications
+        await loadApplicationsData();
+      } else {
+        Alert.alert('Error', result.error || 'Failed to submit application');
+      }
     } catch (error) {
       Alert.alert('Error', 'Failed to submit application. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -160,27 +280,41 @@ const Schemes = () => {
     </View>
   );
 
-  const renderApplicationCard = (application: Application) => (
-    <View key={application.id} style={styles.applicationCard}>
-      <View style={styles.applicationHeader}>
-        <Text style={styles.applicationTitle}>{application.schemeName}</Text>
-        <View style={[styles.applicationStatus, { backgroundColor: getStatusColor(application.status) }]}>
-          <Text style={styles.applicationStatusText}>
-            {getStatusIcon(application.status)} {application.status.replace('_', ' ').toUpperCase()}
-          </Text>
+  const renderApplicationCard = (application: SchemeApplication) => {
+    const formatDate = (date: Date | undefined) => {
+      if (!date) return 'N/A';
+      return date.toLocaleDateString('en-IN', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    };
+
+    return (
+      <View key={application.id} style={styles.applicationCard}>
+        <View style={styles.applicationHeader}>
+          <Text style={styles.applicationTitle}>{application.schemeName}</Text>
+          <View style={[styles.applicationStatus, { backgroundColor: getStatusColor(application.status) }]}>
+            <Text style={styles.applicationStatusText}>
+              {getStatusIcon(application.status)} {application.status.replace('_', ' ').toUpperCase()}
+            </Text>
+          </View>
         </View>
+        
+        <Text style={styles.applicationDate}>Applied on: {formatDate(application.applicationDate)}</Text>
+        
+        {application.remarks && (
+          <View style={styles.remarksContainer}>
+            <Text style={styles.remarksTitle}>📝 Status Update:</Text>
+            <Text style={styles.remarksText}>{application.remarks}</Text>
+            {application.reviewedAt && (
+              <Text style={styles.reviewDate}>Updated: {formatDate(application.reviewedAt)}</Text>
+            )}
+          </View>
+        )}
       </View>
-      
-      <Text style={styles.applicationDate}>Applied on: {application.applicationDate}</Text>
-      
-      {application.remarks && (
-        <View style={styles.remarksContainer}>
-          <Text style={styles.remarksTitle}>📝 Status Update:</Text>
-          <Text style={styles.remarksText}>{application.remarks}</Text>
-        </View>
-      )}
-    </View>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -265,7 +399,17 @@ const Schemes = () => {
         </View>
       )}
 
-      <ScrollView style={styles.content}>
+      <ScrollView 
+        style={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={['#9C27B0']}
+            tintColor="#9C27B0"
+          />
+        }
+      >
         {activeTab === 'available' ? (
           <View style={styles.schemesContainer}>
             {filteredSchemes.map(renderSchemeCard)}
@@ -416,10 +560,13 @@ const Schemes = () => {
               </View>
 
               <TouchableOpacity
-                style={styles.submitButton}
+                style={[styles.submitButton, submitting && styles.disabledButton]}
                 onPress={submitApplication}
+                disabled={submitting}
               >
-                <Text style={styles.submitButtonText}>Submit Application</Text>
+                <Text style={styles.submitButtonText}>
+                  {submitting ? 'Submitting...' : 'Submit Application'}
+                </Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -771,6 +918,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     lineHeight: 18,
+  },
+  reviewDate: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 6,
+    fontStyle: 'italic',
   },
   emptyState: {
     alignItems: 'center',
