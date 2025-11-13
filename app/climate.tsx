@@ -179,7 +179,7 @@ const ClimateAnalysis = () => {
     <View style={styles.tabContent}>
       <Text style={styles.sectionTitle}>7-Day Forecast</Text>
       {forecast.map((day, index) => (
-        <View key={index} style={styles.forecastCard}>
+        <View key={day.date || `forecast-${index}`} style={styles.forecastCard}>
           <View style={styles.forecastLeft}>
             <Text style={styles.forecastDay}>{day.day}</Text>
             <Text style={styles.forecastDate}>{day.date.split('-').slice(1).join('/')}</Text>

@@ -256,7 +256,7 @@ const Schemes = () => {
       <View style={styles.schemeDetails}>
         <Text style={styles.detailTitle}>📋 Eligibility:</Text>
         {scheme.eligibility.map((item, index) => (
-          <Text key={index} style={styles.detailItem}>• {item}</Text>
+          <Text key={`${scheme.id}-eligibility-${index}`} style={styles.detailItem}>• {item}</Text>
         ))}
       </View>
 

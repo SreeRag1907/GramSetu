@@ -639,7 +639,7 @@ const Marketplace = () => {
       ) : paginatedPrices.length > 0 ? (
         <>
           {paginatedPrices.map((price: any, index: number) => (
-            <PriceCard key={index} price={price} isRealTime={isScrapingAvailable} />
+            <PriceCard key={`${price.crop}-${price.market}-${price.price}-${index}`} price={price} isRealTime={isScrapingAvailable} />
           ))}
           
           {/* Load More button for prices */}
