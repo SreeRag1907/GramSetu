@@ -16,16 +16,41 @@ const firebaseConfig = {
   measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Validate Firebase configuration
+const validateFirebaseConfig = () => {
+  const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'appId'];
+  const missingKeys = requiredKeys.filter(key => !firebaseConfig[key as keyof typeof firebaseConfig]);
+  
+  if (missingKeys.length > 0) {
+    console.error('Missing Firebase configuration:', missingKeys);
+    console.error('Please ensure all EXPO_PUBLIC_FIREBASE_* environment variables are set');
+    return false;
+  }
+  return true;
+};
 
-// Initialize Firebase services
-export const db = getFirestore(app);
-export const auth = getAuth(app);
-export const storage = getStorage(app);
+// Initialize Firebase only if config is valid
+let app;
+let db;
+let auth;
+let storage;
+
+try {
+  if (validateFirebaseConfig()) {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    auth = getAuth(app);
+    storage = getStorage(app);
+  } else {
+    console.error('Firebase initialization skipped due to missing configuration');
+  }
+} catch (error) {
+  console.error('Firebase initialization error:', error);
+}
 
 // Analytics only works on web, not React Native
 // Commenting out to prevent errors on mobile
 export const analytics = null; // getAnalytics(app) only works on web
 
+export { db, auth, storage };
 export default app;

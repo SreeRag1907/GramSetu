@@ -61,9 +61,10 @@ const LoginRegistration = () => {
       }, 1000);
       
     } catch (error) {
+      console.error('Send OTP error:', error);
       setIsLoading(false);
       setLoadingMessage('');
-      Alert.alert('Error', 'Failed to verify phone number. Please try again.');
+      Alert.alert('Error', `Failed to verify phone number: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -93,9 +94,11 @@ const LoginRegistration = () => {
           
           setIsLoading(false);
           setLoadingMessage('');
-          Alert.alert('Welcome Back!', `Hello ${userResult.data.name}!`, [
-            { text: 'Continue', onPress: () => router.replace('/dashboard') }
-          ]);
+          
+          // Navigate directly without alert in production
+          setTimeout(() => {
+            router.replace('/dashboard');
+          }, 500);
         } else {
           setIsLoading(false);
           setLoadingMessage('');
@@ -106,12 +109,12 @@ const LoginRegistration = () => {
         setOtpVerified(true);
         setIsLoading(false);
         setLoadingMessage('');
-        Alert.alert('Welcome New User!', 'Please complete your profile to get started with GramSetu');
       }
     } catch (error) {
+      console.error('Verify OTP error:', error);
       setIsLoading(false);
       setLoadingMessage('');
-      Alert.alert('Error', 'Verification failed. Please try again.');
+      Alert.alert('Error', `Verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -148,9 +151,9 @@ const LoginRegistration = () => {
 
         setLoadingMessage('Registration complete!');
         
-        Alert.alert('Success', 'Account created successfully!', [
-          { text: 'Continue', onPress: () => router.replace('/dashboard') }
-        ]);
+        setTimeout(() => {
+          router.replace('/dashboard');
+        }, 500);
       } else {
         Alert.alert('Error', result.error || 'Failed to create account. Please try again.');
       }
